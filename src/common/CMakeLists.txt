@@ -1,0 +1,2 @@
+SET(COMMON_SRC common.cc)
+ADD_LIBRARY(common STATIC ${COMMON_SRC})

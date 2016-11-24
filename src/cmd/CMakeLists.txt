@@ -1,0 +1,2 @@
+SET(CMD_SRC cmd.cc)
+ADD_EXECUTABLE(cmd ${CMD_SRC})
