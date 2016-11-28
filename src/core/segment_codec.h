@@ -42,7 +42,7 @@ public:
     uint64_t total_size = 0;
     memcpy(static_cast<void*>(&total_size), rbuffer, 8);
     rbuffer += 8;
-    memcpy(static_cast<void*>(*header->offset), rbuffer, 8);
+    memcpy(static_cast<void*>(&header->offset), rbuffer, 8);
     return true;
   }
 };
