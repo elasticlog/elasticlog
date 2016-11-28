@@ -5,6 +5,7 @@
 #include <string>
 #include <stdint.h>
 #include "mutex.h"
+#include "segment_codec.h"
 
 namespace el {
 
@@ -33,7 +34,7 @@ private:
   uint64_t current_size_;
   FILE* fd_;
   ::baidu::common::Mutex mu_;
-
+  SegmentCodec codec_;
 };
 
 }

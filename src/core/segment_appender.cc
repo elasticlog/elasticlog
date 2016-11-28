@@ -12,7 +12,8 @@ namespace el {
 
 SegmentAppender::SegmentAppender(const std::string& folder,
     const std::string& filename, uint64_t max_size):folder_(folder),
-  filename_(filename),max_size_(max_size),current_size_(0),fd_(NULL),mu_(){}
+  filename_(filename),max_size_(max_size),current_size_(0),fd_(NULL),mu_(),
+    codec_(){}
 
 SegmentAppender::~SegmentAppender(){}
 
@@ -35,6 +36,18 @@ bool SegmentAppender::Init() {
   LOG(INFO, "init segment %s in %s with size %lld and fd %d ok", filename_, folder_,
       current_size_, file_no);
   return true;
+}
+
+uint64_t SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
+  std::string header_buf;
+  SegmentHeader header;
+  header.offset = offset;
+  header.size = size;
+  bool ok = codec.Encode(header, &header_buf);
+  int header_size = fwrite(header_buf.data(), sizeof(char), header_buf.size(), fd_);
+  int data_size = fwrite(data, sizeof(char), size, fd_);
+  fflush(fd_);
+  return 0;
 }
 
 }
