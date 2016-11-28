@@ -22,7 +22,7 @@ public:
 
   bool Appendable();
   //
-  uint64_t Append(const char* data, uint64_t size, uint64_t offset);
+  bool Append(const char* data, uint64_t size, uint64_t offset);
 
   bool Sync();
 

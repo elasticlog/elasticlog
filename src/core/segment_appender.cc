@@ -38,14 +38,22 @@ bool SegmentAppender::Init() {
   return true;
 }
 
-uint64_t SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
+bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
   std::string header_buf;
   SegmentHeader header;
   header.offset = offset;
   header.size = size;
   bool ok = codec.Encode(header, &header_buf);
   int header_size = fwrite(header_buf.data(), sizeof(char), header_buf.size(), fd_);
+  if (header_size != header_buf.size()) {
+    LOG(WARNING, "fail to write header buf size %ld, real size %ld", header_size.size(),
+            header_size);
+    return false;
+  }
   int data_size = fwrite(data, sizeof(char), size, fd_);
+  if (data_size != size) {
+    return false;
+  }
   fflush(fd_);
   return 0;
 }
