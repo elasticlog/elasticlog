@@ -1,8 +1,6 @@
 #ifndef EL_CORE_SEGMENT_APPENDER_H_
 #define EL_CORE_SEGMENT_APPENDER_H_
 
-#include <stdio>
-#include <string>
 #include <stdint.h>
 #include "mutex.h"
 #include "segment_codec.h"
