@@ -67,23 +67,6 @@ else
     echo "install protobuf done"
 fi
 
-if [ -f "zlib_succ" ]
-then
-    echo "zlib exist"
-else
-    echo "start install zlib ..."
-    # protobuf
-    wget --no-check-certificate https://github.com/elasticlog/deps/files/624016/zlib-1.2.8.tar.gz
-    tar zxf zlib-1.2.8.tar.gz >/dev/null
-    cd zlib-1.2.8
-    ./configure  
-    make -j2 >/dev/null
-    make install
-    cd -
-    touch zlib_succ
-    echo "install zlib done"
-fi
-
 
 if [ -f "snappy_succ" ]
 then
