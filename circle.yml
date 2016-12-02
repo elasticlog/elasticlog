@@ -3,4 +3,5 @@ machine:
     - sudo apt-get install -y zlib1g g++ libreadline-dev cmake git libz-dev 
 test:
   pre:
-    - sh build.sh && run_ut.sh
+    - sh build.sh 
+    - sh run_ut.sh
