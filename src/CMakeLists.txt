@@ -1,1 +1,1 @@
-ADD_SUBDIRECTORY(common cmd)
+ADD_SUBDIRECTORY(cmd)

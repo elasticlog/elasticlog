@@ -1,8 +1,6 @@
 #ifndef EL_CORE_SEGMENT_APPENDER_H_
 #define EL_CORE_SEGMENT_APPENDER_H_
 
-#include <stdio>
-#include <string>
 #include <stdint.h>
 #include "mutex.h"
 #include "segment_codec.h"
@@ -39,3 +37,4 @@ private:
 
 }
 #endif
+/* vim: set expandtab ts=2 sw=2 sts=2 tw=100: */

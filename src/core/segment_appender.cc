@@ -5,9 +5,10 @@
 #include "logging.h"
 
 using ::baidu::common::INFO;
-using ::baidu::common::WARNING:
-using ::baidu::common::DEBUG:
+using ::baidu::common::WARNING;
+using ::baidu::common::DEBUG;
 using ::baidu::common::MutexLock;
+
 namespace el {
 
 SegmentAppender::SegmentAppender(const std::string& folder,
@@ -44,6 +45,7 @@ bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
   header.offset = offset;
   header.size = size;
   bool ok = codec.Encode(header, &header_buf);
+  MutexLock lock(&mu_);
   int header_size = fwrite(header_buf.data(), sizeof(char), header_buf.size(), fd_);
   if (header_size != header_buf.size()) {
     LOG(WARNING, "fail to write header buf size %ld, real size %ld", header_size.size(),
@@ -52,10 +54,11 @@ bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
   }
   int data_size = fwrite(data, sizeof(char), size, fd_);
   if (data_size != size) {
+    LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, data_size);
     return false;
   }
   fflush(fd_);
-  return 0;
+  return true;
 }
 
 }
