@@ -17,8 +17,8 @@ struct SegmentHeader {
 class SegmentCodec {
 
 public:
-  SegmentCodec();
-  ~SegmentCodec();
+  SegmentCodec() {}
+  ~SegmentCodec() {}
 
   bool Encode(const SegmentHeader& header, std::string* buf) {
     uint64_t total_size = sizeof(uint64_t) * 2;
