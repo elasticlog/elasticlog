@@ -24,6 +24,7 @@ public:
 
   bool Sync();
 
+  void Close();
 private:
   std::string folder_;
   std::string filename_;

@@ -42,27 +42,65 @@ bool SegmentAppender::Init() {
   return true;
 }
 
+bool SegmentAppender::Appendable() {
+  return max_size_ > current_size_;
+}
+
 bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
+  if (!Appendable()) {
+    return false; 
+  }
   std::string header_buf;
   SegmentHeader header;
   header.offset = offset;
   header.data_size = size;
   bool ok = codec_.Encode(header, &header_buf);
-  MutexLock lock(&mu_);
-  //TODO two io requests vs one io request but one more copy
-  int header_size = fwrite(header_buf.data(), sizeof(char), header_buf.size(), fd_);
-  if (header_size != header_buf.size()) {
-    LOG(WARNING, "fail to write header buf size %ld, real size %ld", header_buf.size(),
-            header_size);
-    return false;
+  {
+    MutexLock lock(&mu_);
+    //TODO two io requests vs one io request but one more copy
+    int header_size = fwrite(header_buf.data(), sizeof(char), header_buf.size(), fd_);
+    if (header_size != header_buf.size()) {
+      LOG(WARNING, "fail to write header buf size %ld, real size %ld", header_buf.size(),
+              header_size);
+      return false;
+    }
+    int data_size = fwrite(data, sizeof(char), size, fd_);
+    if (data_size != size) {
+      LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, data_size);
+      return false;
+    }
+    current_size_ += header_size + data_size;
   }
-  int data_size = fwrite(data, sizeof(char), size, fd_);
-  if (data_size != size) {
-    LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, data_size);
-    return false;
-  }
-  fflush(fd_);
+  int flushed_size = fflush(fd_);
+  LOG(DEBUG, "flush data %ld to %s", flushed_size, filename_.c_str());
   return true;
+}
+
+bool SegmentAppender::Sync() {
+  if (fd_ == NULL) {
+    return false; 
+  }
+  int file_no = fileno(fd_);
+  int ret = fsync(file_no);
+  if (ret != 0) {
+    LOG(WARNING, "fail to fsync fd %ld with filename %s for %s",
+        file_no, filename_.c_str(), strerror(errno));
+    return false;
+  }
+  return true;
+}
+
+void SegmentAppender::Close() {
+  if (fd_ == NULL) {
+    return; 
+  }
+  int ret = fclose(fd_);
+  if (ret != 0) {
+    LOG(WARNING, "fail to close filename %s for %s", filename_.c_str(),
+        strerror(errno));
+    return;
+  }
+  fd_ = NULL;
 }
 
 }
