@@ -8,6 +8,7 @@
 #include "segment_appender.h"
 
 #include "gtest/gtest.h"
+#include "logging.h"
 
 namespace el{
 
@@ -24,7 +25,10 @@ TEST_F(SA_Test, Init) {
   bool ok = appender.Init();
   ASSERT_EQ(true, ok);
   std::string data ="hello world!";
-  uint64_t offset  = 0;
+  uint64_t offset  = 64;
+  ok = appender.Append(data.c_str(), data.size(), offset);
+  ASSERT_EQ(true, ok);
+  offset = 65;
   ok = appender.Append(data.c_str(), data.size(), offset);
   ASSERT_EQ(true, ok);
   ok = appender.Sync();
@@ -35,6 +39,7 @@ TEST_F(SA_Test, Init) {
 }
 
 int main(int argc, char** argv) {
+  ::baidu::common::SetLogLevel(::baidu::common::DEBUG);
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
