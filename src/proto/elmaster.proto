@@ -1,0 +1,15 @@
+package el;
+import "el.proto";
+
+option cc_generic_services = true;
+
+message CreateLogRequest {}
+
+message CreateLogResponse {
+  optional Status status = 1;
+}
+
+
+service ElMaster {
+  rpc CreateLog(CreateLogRequest) returns (CreateLogResponse);
+}
