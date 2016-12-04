@@ -72,8 +72,12 @@ bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
     }
     current_size_ += header_size + data_size;
   }
-  int flushed_size = fflush(fd_);
-  LOG(DEBUG, "flush data %ld to %s", flushed_size, filename_.c_str());
+  int ret = fflush(fd_);
+  if (ret != 0) {
+    LOG(WARNING, "fail to flush file %s for %s ", filename_.c_str(), strerror(errno));
+    return false;
+  }
+  LOG(DEBUG, "flush data to %s successfully", filename_.c_str());
   return true;
 }
 
@@ -88,6 +92,7 @@ bool SegmentAppender::Sync() {
         file_no, filename_.c_str(), strerror(errno));
     return false;
   }
+  LOG(DEBUG, "sync segment file %s successfully", filename_.c_str());
   return true;
 }
 
@@ -101,6 +106,7 @@ void SegmentAppender::Close() {
         strerror(errno));
     return;
   }
+  LOG(DEBUG, "close segment file %s successfully", filename_.c_str());
   fd_ = NULL;
 }
 

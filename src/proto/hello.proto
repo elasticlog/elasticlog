@@ -1,7 +1,0 @@
-package dos;
-
-message HelloMessage {
-  optional string msg = 1;
-}
-
-

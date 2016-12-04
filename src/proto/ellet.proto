@@ -1,0 +1,23 @@
+package el;
+import 'el.proto';
+
+option cc_generic_services = true;
+
+message LogEntry {
+  optional uint64 entry_id = 1;
+  optional uint64 log_id = 2;
+  optional uint64 partion_id = 3;
+  optional bytes content = 4;
+}
+
+message AppendLogRequest {
+  optional LogEntry entry = 1;
+}
+
+message AppendLogResponse {
+  optional Status status = 1;
+}
+
+service ElLet {
+  rpc AppendLog(AppendLogRequest) returns (AppendLogResponse);
+}
