@@ -29,7 +29,8 @@ int main(int argc, char* args[]) {
   std::string version = EL_VERSION_MAJOR + "." + EL_VERSION_MINOR;
   if (argc > 1) {
     std::string cmd = args[1];
-    if (cmd == "version") {
+    if (cmd == "version"
+        || cmd == "--version") {
       printf("ellet version %d.%d \n", EL_VERSION_MAJOR, EL_VERSION_MINOR);
       return 0;
     }
@@ -42,6 +43,7 @@ int main(int argc, char* args[]) {
   sofa::pbrpc::RpcServer rpc_server(options);  
   ::el::ElLetImpl* ellet = new ::el::ElLetImpl();
   ellet->Init();
+  ::google::ShutDownCommandLineFlags();
   if (!rpc_server.RegisterService(ellet)) {
     LOG(WARNING, "fail to start ellet service");
     exit(1);
