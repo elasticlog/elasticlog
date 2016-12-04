@@ -18,12 +18,7 @@ FOREACH(PROTO_FILE ${PROTO_SRC})
         ${COMMON_SRC} 
         ${CUR_PROTO_GEN}
         )
-    endif()
-
-  SET(PROTO_GEN
-     ${PROTO_GEN}
-     ${CUR_PROTO_GEN}
-  )
+  endif()
   MESSAGE(STATUS "CUR_PROTO_GEN = ${CUR_PROTO_GEN}")
   ADD_CUSTOM_COMMAND(
     OUTPUT ${CUR_PROTO_GEN}
