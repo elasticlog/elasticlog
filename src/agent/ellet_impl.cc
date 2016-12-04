@@ -23,17 +23,17 @@ bool ElLetImpl::Init() {
   return true;
 }
 
-void ElLetImpl::AppendLog(RpcController* controller,
-                 const AppendLogRequest* request,
-                 AppendLogResponse* response,
+void ElLetImpl::AppendEntry(RpcController* controller,
+                 const AppendEntryRequest* request,
+                 AppendEntryResponse* response,
                  Closure* done) {
 
 
 }
 
-void ElLetImpl::DeployLog(RpcController* controller,
-                 const DeployLogRequest* request,
-                 DeployLogResponse* response,
+void ElLetImpl::DeploySegment(RpcController* controller,
+                 const DeploySegmentRequest* request,
+                 DeploySegmentResponse* response,
                  Closure* done) {
   ElLog* el_log = new ElLog();
   el_log->log_id = request->log_id();
@@ -41,7 +41,10 @@ void ElLetImpl::DeployLog(RpcController* controller,
   el_log->partion_id = request->partion_id();
   el_log->primary_endpoint = request->primary_endpoint();
   for (int i = 0; i < request->replica_endpoints_size(); ++i) {
-    el_log->replica_endpoints.push_back(request->replica_endpoints(i));
+    el_log->replica_endpoints.insert(request->replica_endpoints(i));
+  }
+  for (int i = 0; i < request->segment_ids_size(); i++) {
+    el_log->segment_ids.insert(request->segment_ids(i));
   }
   el_log->state = request->state();
   el_log->AddRef();

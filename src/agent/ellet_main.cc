@@ -34,6 +34,9 @@ int main(int argc, char* args[]) {
       return 0;
     }
   }
+  ::baidu::common::SetLogFile("./ellet.log", true);
+  ::baidu::common::SetWarningFile("./ellet.wlog", true);
+  ::baidu::common::SetLogSize(1024);//1024M
   ::google::ParseCommandLineFlags(&argc, &args, true);
   sofa::pbrpc::RpcServerOptions options;
   sofa::pbrpc::RpcServer rpc_server(options);  
