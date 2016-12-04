@@ -15,6 +15,21 @@ using ::baidu::common::WARNING;
 
 namespace el {
 
+ElLog::ElLog() {}
+ElLog::~ElLog() {}
+
+void ElLog::AddRef() {
+  ::baidu::common::atomic_inc(&refs_);
+  assert(refs_ > 0);
+}
+
+void ElLog::DecRef() {
+  if (::baidu::common::atomic_add(&refs_, -1) == 1) {
+    assert(refs_ == 0);
+    delete this;
+  }
+}
+
 ElLetImpl::ElLetImpl():mu_(),el_logs_(){}
 
 ElLetImpl::~ElLetImpl() {}
@@ -27,8 +42,20 @@ void ElLetImpl::AppendEntry(RpcController* controller,
                  const AppendEntryRequest* request,
                  AppendEntryResponse* response,
                  Closure* done) {
-
-
+  ElLog* el_log = NULL;
+  {
+    MutexLock lock(&mu_);
+    ElLogs::iterator it = el_logs_.find(request->entry().log_id());
+    if (it == el_logs_.end()) {
+      LOG(WARNING, "fail to find log with id %lld", request->entry().log_id());
+      response->set_status(kLogNotFound);
+      done->Run();
+      return;
+    }
+    el_log = it->second;
+    el_log->AddRef();
+  }
+  
 }
 
 void ElLetImpl::DeploySegment(RpcController* controller,

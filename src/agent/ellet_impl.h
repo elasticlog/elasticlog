@@ -21,7 +21,19 @@ using ::baidu::common::MutexLock;
 
 namespace el {
 
-struct ElLog {
+class ElLetImpl;
+
+class ElLog {
+
+public:
+  ElLog();
+  ~ElLog();
+
+  void AddRef();
+  void DecRef();
+
+private:
+
   uint64_t log_id;
   std::string log_name;
   uint32_t partion_id;
@@ -30,18 +42,7 @@ struct ElLog {
   ElLogState state;
   volatile int refs_;
   std::set<uint64_t> segment_ids;
-
-  void AddRef() {
-    ::baidu::common::atomic_inc(&refs_);
-    assert(refs_ > 0);
-  }
-
-  void DecRef() {
-    if (::baidu::common::atomic_add(&refs_, -1) == 1) {
-      assert(refs_ == 0);
-      delete this;
-    }
-  }
+  friend class ElLetImpl;
 };
 
 typedef std::map<uint64_t, ElLog*> ElLogs;
