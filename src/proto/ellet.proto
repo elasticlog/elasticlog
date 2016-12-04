@@ -18,6 +18,24 @@ message AppendLogResponse {
   optional Status status = 1;
 }
 
+message DeployLogRequest {
+  optional uint64 log_id = 1;
+  optional string log_name = 2;
+  optional uint32 partion_id = 3;
+  optional string primary_endpoint = 4;
+  repeated string replica_endpoints = 5;
+  optional ElLogState state = 6;
+}
+
+message DeployLogResponse {
+  optional Status status = 1;
+}
+
+
 service ElLet {
+  // handle sdk requests
   rpc AppendLog(AppendLogRequest) returns (AppendLogResponse);
+
+  // handle master requests
+  rpc DeployLog(DeployLogRequest) returns (DeployLogResponse);
 }

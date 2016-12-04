@@ -1,4 +1,4 @@
 ADD_SUBDIRECTORY(proto)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(agent)
-
+ADD_LIBRARY(el_flags STATIC flags.cc)
