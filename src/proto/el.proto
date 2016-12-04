@@ -2,5 +2,11 @@ package el;
 
 enum Status {
   kOk = 0;
-  kRpcErr = 1;
+  kRpcErr = 30;
+  kLogExists = 40;
+}
+
+enum ElLogState {
+  kPaused = 1;
+  kRunning = 2;
 }
