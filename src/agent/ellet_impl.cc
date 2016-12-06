@@ -47,7 +47,7 @@ bool ElLog::Init() {
   bool ok = MkdirRecur(partion_dir);
   if (!ok) {
     LOG(WARNING, "fail to create partion dir %s for log #id %lld #name %s", partion_dir.c_str(),
-        log_id, log_name.c_str);
+        log_id, log_name.c_str());
     return false;
   }
   std::string segment_name = current_segment_id_ + ".segm";
