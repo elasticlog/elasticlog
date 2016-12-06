@@ -13,6 +13,7 @@
 #include "ellet.pb.h"
 #include "mutex.h"
 #include "counter.h"
+#include "segment_appender.h"
 
 using ::google::protobuf::RpcController;
 using ::google::protobuf::Closure;
@@ -29,6 +30,8 @@ public:
   ElLog();
   ~ElLog();
 
+  bool Init();
+
   void AddRef();
   void DecRef();
 
@@ -42,6 +45,10 @@ private:
   ElLogState state;
   volatile int refs_;
   std::set<uint64_t> segment_ids;
+  std::map<uint64_t, SegmentAppender*> appenders_;
+  uint64_t current_segment_id_;
+  Mutex mu_;
+  uint64_t segment_max_size_;
   friend class ElLetImpl;
 };
 
