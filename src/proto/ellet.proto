@@ -26,6 +26,7 @@ message DeploySegmentRequest {
   repeated string replica_endpoints = 5;
   optional ElLogState state = 6;
   repeated uint64 segment_ids = 7;
+  optional uint64 segment_max_size = 8;
 }
 
 message DeploySegmentResponse {

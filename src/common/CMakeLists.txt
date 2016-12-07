@@ -1,2 +1,2 @@
-SET(COMMON_SRC common.cc)
-ADD_LIBRARY(common STATIC ${COMMON_SRC})
+SET(COMMON_SRC file_utils.cc)
+ADD_LIBRARY(el_common STATIC ${COMMON_SRC} file_utils.h)

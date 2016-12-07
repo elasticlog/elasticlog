@@ -7,16 +7,62 @@
 
 #include "ellet_impl.h"
 
+#include <gflags/gflags.h>
+#include <sstream>
 #include "logging.h"
+#include "file_utils.h"
 
 using ::baidu::common::INFO;
 using ::baidu::common::DEBUG;
 using ::baidu::common::WARNING;
 
+DECLARE_string(ellet_segment_dir);
+
 namespace el {
 
-ElLog::ElLog() {}
+ElLog::ElLog():log_id(0),
+  log_name(),
+  partion_id(0),
+  primary_endpoint(),
+  replica_endpoints(),
+  state(kPaused),
+  refs_(0),
+  segment_ids(),
+  appenders_(),
+  current_segment_id_(0),
+  mu_(),
+  segment_ids_size_(0){}
 ElLog::~ElLog() {}
+
+bool ElLog::Init() {
+  MutexLock lock(&mu_);
+  //TODO recover segment info from file
+  if (segment_ids.size() < 0) {
+    LOG(WARNING, "invalid segment ids size for log #id %lld #name %s #partion %lld", log_id, log_name.c_str(),
+        partion_id);
+    return false;
+  }
+  current_segment_id_ = segment_ids.begin();
+  std::string partion_dir = FLAGS_ellet_segment_dir + "/" + log_id + "/" + partion_id;
+  bool ok = MkdirRecur(partion_dir);
+  if (!ok) {
+    LOG(WARNING, "fail to create partion dir %s for log #id %lld #name %s", partion_dir.c_str(),
+        log_id, log_name.c_str());
+    return false;
+  }
+  std::string segment_name = current_segment_id_ + ".segm";
+  //TODO check which segment should be init
+  SegmentAppender* appender = new SegmentAppender(partion_dir, segment_name,
+      segment_max_size_);
+  ok = appender->Init();
+  if (!ok) {
+    LOG(WARNING, "fail to init segment #id %lld of log #id %lld #name %s",
+        current_segment_id_, log_id, log_name.c_str());
+    return false;
+  }
+  appenders_.insert(std::make_pair(current_segment_id_, appender));
+  return true;
+}
 
 void ElLog::AddRef() {
   ::baidu::common::atomic_inc(&refs_);
