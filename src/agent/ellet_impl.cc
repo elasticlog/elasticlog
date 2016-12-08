@@ -31,7 +31,7 @@ ElLog::ElLog():log_id(0),
   appenders_(),
   current_segment_id_(0),
   mu_(),
-  segment_ids_size_(0){}
+  segment_max_size_(0){}
 ElLog::~ElLog() {}
 
 bool ElLog::Init() {
@@ -42,8 +42,15 @@ bool ElLog::Init() {
         partion_id);
     return false;
   }
-  current_segment_id_ = segment_ids.begin();
-  std::string partion_dir = FLAGS_ellet_segment_dir + "/" + log_id + "/" + partion_id;
+  current_segment_id_ = *segment_ids.begin();
+  std::stringstream ss;
+  ss << FLAGS_ellet_segment_dir 
+     << "/"
+     << log_id
+     << "/"
+     << partion_id;
+
+  std::string partion_dir = ss.str();
   bool ok = MkdirRecur(partion_dir);
   if (!ok) {
     LOG(WARNING, "fail to create partion dir %s for log #id %lld #name %s", partion_dir.c_str(),
