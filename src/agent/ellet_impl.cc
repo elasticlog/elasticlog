@@ -138,6 +138,13 @@ void ElLetImpl::DeploySegment(RpcController* controller,
     done->Run();
     return;
   }
+  bool ok = el_log->Init();
+  if (!ok) {
+    el_log->DecRef();
+    response->set_status(kInitElLogError);
+    done->Run();
+    return;
+  }
   el_logs_.insert(std::make_pair(request->log_id(), el_log));
   LOG(INFO, "add log with id %lld, name %s and state %s successfully", request->log_id(),
       request->log_name().c_str(),
