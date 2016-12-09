@@ -37,7 +37,7 @@ bool SegmentAppender::Init() {
     return false;
   }
   current_size_ = sb.st_size;
-  LOG(INFO, "init segment %s in %s with size %lld and fd %d ok", filename_.c_str(),
+  LOG(INFO, "init segment %s in %s with size %ld and fd %d ok", filename_.c_str(),
           folder_.c_str(),
           current_size_, file_no);
   return true;

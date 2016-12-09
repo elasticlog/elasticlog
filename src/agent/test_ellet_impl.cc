@@ -41,10 +41,10 @@ TEST_F(ElLet_Test, DeploySegment) {
   DeploySegmentRequest request;
   request.set_log_id(10);
   request.set_log_name("test");
-  request.set_partion_id(0);
+  request.set_partion_id(1);
   request.set_primary_endpoint("local");
   request.set_state(kPaused);
-  request.add_segment_ids(1);
+  request.add_segment_ids(10);
   request.set_segment_max_size(1024 * 1024 * 128);
   DeploySegmentResponse response;
   ok = client->SendRequest(ellet, &ElLet_Stub::DeploySegment,

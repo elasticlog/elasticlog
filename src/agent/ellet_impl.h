@@ -8,7 +8,7 @@
 #ifndef ELLET_IMPL_H
 #define ELLET_IMPL_H
 
-#include <set>
+#include <vector>
 #include <map>
 #include "ellet.pb.h"
 #include "mutex.h"
@@ -44,7 +44,7 @@ private:
   std::set<std::string> replica_endpoints;
   ElLogState state;
   volatile int refs_;
-  std::set<uint64_t> segment_ids;
+  std::vector<uint64_t> segment_ids;
   std::map<uint64_t, SegmentAppender*> appenders_;
   uint64_t current_segment_id_;
   Mutex mu_;

@@ -38,35 +38,37 @@ bool ElLog::Init() {
   MutexLock lock(&mu_);
   //TODO recover segment info from file
   if (segment_ids.size() < 0) {
-    LOG(WARNING, "invalid segment ids size for log #id %lld #name %s #partion %lld", log_id, log_name.c_str(),
+    LOG(WARNING, "invalid segment ids size for log id %ld name %s partion %ld", log_id, log_name.c_str(),
         partion_id);
     return false;
   }
-  current_segment_id_ = *segment_ids.begin();
+  current_segment_id_ = segment_ids[0];
   std::stringstream ss;
   ss << FLAGS_ellet_segment_dir 
      << "/"
      << log_id
      << "/"
-     << partion_id;
-
+     << partion_id
+     << "/";
   std::string partion_dir = ss.str();
   bool ok = MkdirRecur(partion_dir);
   if (!ok) {
-    LOG(WARNING, "fail to create partion dir %s for log #id %lld #name %s", partion_dir.c_str(),
+    LOG(WARNING, "fail to create partion dir %s for log id %ld #name %s", partion_dir.c_str(),
         log_id, log_name.c_str());
     return false;
   }
-  std::string segment_name = current_segment_id_ + ".segm";
+  std::stringstream segment_ss;
+  segment_ss << current_segment_id_ << ".segm";
+  std::string segment_name = segment_ss.str();
   //TODO check which segment should be init
   SegmentAppender* appender = new SegmentAppender(partion_dir, segment_name,
       segment_max_size_);
   ok = appender->Init();
   if (!ok) {
-    LOG(WARNING, "fail to init segment #id %lld of log #id %lld #name %s",
-        current_segment_id_, log_id, log_name.c_str());
     return false;
   }
+  LOG(INFO, "create current segment name %s in dir %s successfully",
+       segment_name.c_str(), partion_dir.c_str());
   appenders_.insert(std::make_pair(current_segment_id_, appender));
   return true;
 }
@@ -100,7 +102,7 @@ void ElLetImpl::AppendEntry(RpcController* controller,
     MutexLock lock(&mu_);
     ElLogs::iterator it = el_logs_.find(request->entry().log_id());
     if (it == el_logs_.end()) {
-      LOG(WARNING, "fail to find log with id %lld", request->entry().log_id());
+      LOG(WARNING, "fail to find log with id %ld", request->entry().log_id());
       response->set_status(kLogNotFound);
       done->Run();
       return;
@@ -120,18 +122,23 @@ void ElLetImpl::DeploySegment(RpcController* controller,
   el_log->log_name = request->log_name();
   el_log->partion_id = request->partion_id();
   el_log->primary_endpoint = request->primary_endpoint();
+  std::stringstream ids;
   for (int i = 0; i < request->replica_endpoints_size(); ++i) {
     el_log->replica_endpoints.insert(request->replica_endpoints(i));
   }
   for (int i = 0; i < request->segment_ids_size(); i++) {
-    el_log->segment_ids.insert(request->segment_ids(i));
+    if (i > 0) {
+      ids << ",";
+    }
+    el_log->segment_ids.push_back(request->segment_ids(i));
+    ids << request->segment_ids(i);
   }
   el_log->state = request->state();
   el_log->AddRef();
   MutexLock lock(&mu_);
   ElLogs::iterator it = el_logs_.find(request->log_id());
   if (it != el_logs_.end()) {
-    LOG(WARNING, "el log with id %lld and name %s does exists", request->log_id(),
+    LOG(WARNING, "el log with id %ld and name %s does exists", request->log_id(),
         request->log_name().c_str());
     el_log->DecRef();
     response->set_status(kLogExists);
@@ -146,9 +153,10 @@ void ElLetImpl::DeploySegment(RpcController* controller,
     return;
   }
   el_logs_.insert(std::make_pair(request->log_id(), el_log));
-  LOG(INFO, "add log with id %lld, name %s and state %s successfully", request->log_id(),
+  LOG(INFO, "add log with id %lld, name %s and state %s #segments %s successfully", request->log_id(),
       request->log_name().c_str(),
-      ElLogState_Name(el_log->state).c_str());
+      ElLogState_Name(el_log->state).c_str(),
+      ids.str().c_str());
   response->set_status(kOk);
   done->Run();
 }
