@@ -85,6 +85,13 @@ void ElLog::DecRef() {
   }
 }
 
+bool ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
+  MutexLock lock(&mu_);
+  //TODO rolling appender
+  SegmentAppender* appender = appenders_[current_segment_id_];
+  return appender->Append(data, size, offset);
+}
+
 ElLetImpl::ElLetImpl():mu_(),el_logs_(){}
 
 ElLetImpl::~ElLetImpl() {}
@@ -110,7 +117,17 @@ void ElLetImpl::AppendEntry(RpcController* controller,
     el_log = it->second;
     el_log->AddRef();
   }
-  
+  bool ok = el_log->Append(request->entry().content().c_str(),
+      request->entry().content().size(),
+      1);
+  if (!ok) {
+    LOG(WARNING, "fail to append data to segment");
+    response->set_status(kAppendError);
+    done->Run();
+    return;
+  }
+  response->set_status(kOk);
+  done->Run();
 }
 
 void ElLetImpl::DeploySegment(RpcController* controller,

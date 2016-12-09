@@ -50,6 +50,15 @@ TEST_F(ElLet_Test, DeploySegment) {
   ok = client->SendRequest(ellet, &ElLet_Stub::DeploySegment,
       &request,&response, 5, 1);
   ASSERT_EQ(true, ok);
+  AppendEntryRequest areq;
+  LogEntry* entry = areq.mutable_entry();
+  entry->set_entry_id(1);
+  entry->set_log_id(10);
+  entry->set_partion_id(1);
+  entry->set_content("hello el!");
+  AppendEntryResponse arep;
+  client->SendRequest(ellet, &ElLet_Stub::AppendEntry,
+      &areq, &arep, 5, 1);
   delete ellet;
   delete client;
 }

@@ -34,7 +34,9 @@ public:
 
   void AddRef();
   void DecRef();
-
+  bool Append(const char* data, 
+              uint64_t size,
+              uint64_t offset);
 private:
 
   uint64_t log_id;
