@@ -8,11 +8,12 @@
 #ifndef ELLET_IMPL_H
 #define ELLET_IMPL_H
 
-#include <set>
+#include <vector>
 #include <map>
 #include "ellet.pb.h"
 #include "mutex.h"
 #include "counter.h"
+#include "segment_appender.h"
 
 using ::google::protobuf::RpcController;
 using ::google::protobuf::Closure;
@@ -21,7 +22,21 @@ using ::baidu::common::MutexLock;
 
 namespace el {
 
-struct ElLog {
+class ElLetImpl;
+
+class ElLog {
+
+public:
+  ElLog();
+  ~ElLog();
+
+  bool Init();
+
+  void AddRef();
+  void DecRef();
+
+private:
+
   uint64_t log_id;
   std::string log_name;
   uint32_t partion_id;
@@ -29,19 +44,12 @@ struct ElLog {
   std::set<std::string> replica_endpoints;
   ElLogState state;
   volatile int refs_;
-  std::set<uint64_t> segment_ids;
-
-  void AddRef() {
-    ::baidu::common::atomic_inc(&refs_);
-    assert(refs_ > 0);
-  }
-
-  void DecRef() {
-    if (::baidu::common::atomic_add(&refs_, -1) == 1) {
-      assert(refs_ == 0);
-      delete this;
-    }
-  }
+  std::vector<uint64_t> segment_ids;
+  std::map<uint64_t, SegmentAppender*> appenders_;
+  uint64_t current_segment_id_;
+  Mutex mu_;
+  uint64_t segment_max_size_;
+  friend class ElLetImpl;
 };
 
 typedef std::map<uint64_t, ElLog*> ElLogs;
