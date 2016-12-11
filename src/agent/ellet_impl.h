@@ -40,6 +40,7 @@ public:
 private:
   // create a new segment for next segment ids;
   bool Rolling();
+  void Close();
 private:
 
   uint64_t log_id;

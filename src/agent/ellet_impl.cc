@@ -33,7 +33,10 @@ ElLog::ElLog():log_id(0),
   mu_(),
   segment_max_size_(0),
   partion_dir_(){}
-ElLog::~ElLog() {}
+
+ElLog::~ElLog() {
+  delete appender_;
+}
 
 bool ElLog::Init() {
   MutexLock lock(&mu_);
@@ -70,7 +73,17 @@ void ElLog::AddRef() {
 void ElLog::DecRef() {
   if (::baidu::common::atomic_add(&refs_, -1) == 1) {
     assert(refs_ == 0);
+    Close();
     delete this;
+  }
+}
+
+void ElLog::Close() {
+  MutexLock lock(&mu_);
+  if (appender_ != NULL) {
+    appender_->Close();
+    delete appender_;
+    appender_ = NULL;
   }
 }
 
@@ -122,8 +135,9 @@ bool ElLog::Rolling() {
       appender_ = NULL;
       return false;
     }
-    LOG(INFO, "rolling next segment #id %ld #succ %d", 
-      current_segment_id_, ret);
+    LOG(INFO, "rolling next segment #id %ld #succ %d for log #id %ld #name %s", 
+      current_segment_id_, ret,
+      log_id, log_name.c_str());
   }
   return ret;
 }
@@ -215,7 +229,6 @@ void ElLetImpl::DeploySegment(RpcController* controller,
   response->set_status(kOk);
   done->Run();
 }
-
 
 }
 
