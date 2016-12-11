@@ -38,6 +38,10 @@ public:
               uint64_t size,
               uint64_t offset);
 private:
+  // create a new segment for next segment ids;
+  bool Rolling();
+  void Close();
+private:
 
   uint64_t log_id;
   std::string log_name;
@@ -47,10 +51,11 @@ private:
   ElLogState state;
   volatile int refs_;
   std::vector<uint64_t> segment_ids;
-  std::map<uint64_t, SegmentAppender*> appenders_;
+  SegmentAppender* appender_;
   uint64_t current_segment_id_;
   Mutex mu_;
   uint64_t segment_max_size_;
+  std::string partion_dir_;
   friend class ElLetImpl;
 };
 

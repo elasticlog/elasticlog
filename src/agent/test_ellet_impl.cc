@@ -45,20 +45,24 @@ TEST_F(ElLet_Test, DeploySegment) {
   request.set_primary_endpoint("local");
   request.set_state(kPaused);
   request.add_segment_ids(10);
-  request.set_segment_max_size(1024 * 1024 * 128);
+  request.add_segment_ids(11);
+  request.set_segment_max_size(1024);
   DeploySegmentResponse response;
   ok = client->SendRequest(ellet, &ElLet_Stub::DeploySegment,
       &request,&response, 5, 1);
   ASSERT_EQ(true, ok);
-  AppendEntryRequest areq;
-  LogEntry* entry = areq.mutable_entry();
-  entry->set_entry_id(1);
-  entry->set_log_id(10);
-  entry->set_partion_id(1);
-  entry->set_content("hello el!");
-  AppendEntryResponse arep;
-  client->SendRequest(ellet, &ElLet_Stub::AppendEntry,
-      &areq, &arep, 5, 1);
+  for (int i = 0; i < 100; i++) {
+    AppendEntryRequest areq;
+    LogEntry* entry = areq.mutable_entry();
+    entry->set_entry_id(1);
+    entry->set_log_id(10);
+    entry->set_partion_id(1);
+    entry->set_content("hello");
+    AppendEntryResponse arep;
+    ok = client->SendRequest(ellet, &ElLet_Stub::AppendEntry,
+              &areq, &arep, 5, 1);
+    ASSERT_EQ(true, ok);
+  }
   delete ellet;
   delete client;
 }

@@ -28,11 +28,15 @@ ElLog::ElLog():log_id(0),
   state(kPaused),
   refs_(0),
   segment_ids(),
-  appenders_(),
+  appender_(NULL),
   current_segment_id_(0),
   mu_(),
-  segment_max_size_(0){}
-ElLog::~ElLog() {}
+  segment_max_size_(0),
+  partion_dir_(){}
+
+ElLog::~ElLog() {
+  delete appender_;
+}
 
 bool ElLog::Init() {
   MutexLock lock(&mu_);
@@ -42,34 +46,22 @@ bool ElLog::Init() {
         partion_id);
     return false;
   }
-  current_segment_id_ = segment_ids[0];
   std::stringstream ss;
   ss << FLAGS_ellet_segment_dir 
      << "/"
      << log_id
-     << "/"
-     << partion_id
-     << "/";
-  std::string partion_dir = ss.str();
-  bool ok = MkdirRecur(partion_dir);
+     << "_" << log_name << "_" << partion_id << "/";
+  partion_dir_ = ss.str();
+  bool ok = MkdirRecur(partion_dir_);
   if (!ok) {
-    LOG(WARNING, "fail to create partion dir %s for log id %ld #name %s", partion_dir.c_str(),
+    LOG(WARNING, "fail to create partion dir %s for log id %ld #name %s", partion_dir_.c_str(),
         log_id, log_name.c_str());
     return false;
   }
-  std::stringstream segment_ss;
-  segment_ss << current_segment_id_ << ".segm";
-  std::string segment_name = segment_ss.str();
-  //TODO check which segment should be init
-  SegmentAppender* appender = new SegmentAppender(partion_dir, segment_name,
-      segment_max_size_);
-  ok = appender->Init();
-  if (!ok) {
+  bool rolling_ok = Rolling();
+  if (!rolling_ok) {
     return false;
   }
-  LOG(INFO, "create current segment name %s in dir %s successfully",
-       segment_name.c_str(), partion_dir.c_str());
-  appenders_.insert(std::make_pair(current_segment_id_, appender));
   return true;
 }
 
@@ -81,15 +73,73 @@ void ElLog::AddRef() {
 void ElLog::DecRef() {
   if (::baidu::common::atomic_add(&refs_, -1) == 1) {
     assert(refs_ == 0);
+    Close();
     delete this;
+  }
+}
+
+void ElLog::Close() {
+  MutexLock lock(&mu_);
+  if (appender_ != NULL) {
+    appender_->Close();
+    delete appender_;
+    appender_ = NULL;
   }
 }
 
 bool ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
   MutexLock lock(&mu_);
-  //TODO rolling appender
-  SegmentAppender* appender = appenders_[current_segment_id_];
-  return appender->Append(data, size, offset);
+  if (appender_ != NULL && appender_->Appendable()) {
+    return appender_->Append(data, size, offset);
+  }
+  if (Rolling()) {
+    return appender_->Append(data, size, offset);
+  }
+  return false;
+}
+
+bool ElLog::Rolling() {
+  mu_.AssertHeld();
+  if (appender_ != NULL) {
+    appender_->Close();
+    delete appender_;
+    appender_ = NULL;
+  }
+  std::vector<uint64_t>::iterator it = segment_ids.begin();
+  bool ret = false;
+  for (; it != segment_ids.end(); ++it) {
+    uint64_t it_val = *it;
+    if (current_segment_id_ <= 0) {
+      current_segment_id_ = it_val;
+      ret = true;
+      break;
+    }
+    if (current_segment_id_ == it_val) {
+      ++it;
+      if (it != segment_ids.end()) {
+        current_segment_id_ = *it;
+        ret = true;
+      }
+      break;
+    }
+  }
+  if (ret) {
+    std::stringstream segment_ss;
+    segment_ss << current_segment_id_ << ".segm";
+    std::string segment_name = segment_ss.str();
+    appender_ = new SegmentAppender(partion_dir_, segment_name,
+        segment_max_size_);
+    bool ok = appender_->Init();
+    if (!ok) {
+      delete appender_;
+      appender_ = NULL;
+      return false;
+    }
+    LOG(INFO, "rolling next segment #id %ld #succ %d for log #id %ld #name %s", 
+      current_segment_id_, ret,
+      log_id, log_name.c_str());
+  }
+  return ret;
 }
 
 ElLetImpl::ElLetImpl():mu_(),el_logs_(){}
@@ -118,16 +168,17 @@ void ElLetImpl::AppendEntry(RpcController* controller,
     el_log->AddRef();
   }
   bool ok = el_log->Append(request->entry().content().c_str(),
-      request->entry().content().size(),
-      1);
+      request->entry().content().size(),1);
   if (!ok) {
     LOG(WARNING, "fail to append data to segment");
     response->set_status(kAppendError);
     done->Run();
+    el_log->DecRef();
     return;
   }
   response->set_status(kOk);
   done->Run();
+  el_log->DecRef();
 }
 
 void ElLetImpl::DeploySegment(RpcController* controller,
@@ -139,6 +190,7 @@ void ElLetImpl::DeploySegment(RpcController* controller,
   el_log->log_name = request->log_name();
   el_log->partion_id = request->partion_id();
   el_log->primary_endpoint = request->primary_endpoint();
+  el_log->segment_max_size_ = request->segment_max_size();
   std::stringstream ids;
   for (int i = 0; i < request->replica_endpoints_size(); ++i) {
     el_log->replica_endpoints.insert(request->replica_endpoints(i));
@@ -177,7 +229,6 @@ void ElLetImpl::DeploySegment(RpcController* controller,
   response->set_status(kOk);
   done->Run();
 }
-
 
 }
 
