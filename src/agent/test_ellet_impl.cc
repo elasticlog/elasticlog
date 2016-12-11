@@ -59,6 +59,7 @@ TEST_F(ElLet_Test, DeploySegment) {
   LOG(INFO, "start sync write 10M to disk");
   uint64_t consumed = ::baidu::common::timer::get_micros();
   for (int i = 0; i < 500000; i++) {
+    int64_t i_con = ::baidu::common::timer::get_micros();
     AppendEntryRequest areq;
     LogEntry* entry = areq.mutable_entry();
     entry->set_entry_id(1);
@@ -69,6 +70,7 @@ TEST_F(ElLet_Test, DeploySegment) {
     ok = client->SendRequest(ellet, &ElLet_Stub::AppendEntry,
               &areq, &arep, 5, 1);
     ASSERT_EQ(true, ok);
+    LOG(INFO, "consumed %lld", ::baidu::common::timer::get_micros() - i_con);
   }
   consumed = ::baidu::common::timer::get_micros() - consumed;
   LOG(INFO, "write 10M completed with time %lld", consumed);
