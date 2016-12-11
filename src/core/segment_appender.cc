@@ -16,13 +16,12 @@ namespace el {
 
 SegmentAppender::SegmentAppender(const std::string& folder,
     const std::string& filename, uint64_t max_size):folder_(folder),
-  filename_(filename),max_size_(max_size),current_size_(0),fd_(NULL),mu_(),
+  filename_(filename),max_size_(max_size),current_size_(0),fd_(NULL),
     codec_(){}
 
 SegmentAppender::~SegmentAppender(){}
 
 bool SegmentAppender::Init() {
-  MutexLock lock(&mu_);
   std::string path = folder_ + "/" + filename_;
   fd_ = fopen(path.c_str(), "ab+");
   if (fd_ == NULL) {
@@ -56,22 +55,19 @@ bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
   header.offset = offset;
   header.data_size = size;
   bool ok = codec_.Encode(header, &header_buf);
-  {
-    MutexLock lock(&mu_);
-    //TODO two io requests vs one io request but one more copy
-    int header_size = fwrite(header_buf.data(), sizeof(char), header_buf.size(), fd_);
-    if (header_size != header_buf.size()) {
-      LOG(WARNING, "fail to write header buf size %ld, real size %ld", header_buf.size(),
-              header_size);
-      return false;
-    }
-    int data_size = fwrite(data, sizeof(char), size, fd_);
-    if (data_size != size) {
-      LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, data_size);
-      return false;
-    }
-    current_size_ += header_size + data_size;
+  //TODO two io requests vs one io request but one more copy
+  int header_size = fwrite(header_buf.data(), sizeof(char), header_buf.size(), fd_);
+  if (header_size != header_buf.size()) {
+    LOG(WARNING, "fail to write header buf size %ld, real size %ld", header_buf.size(),
+            header_size);
+    return false;
   }
+  int data_size = fwrite(data, sizeof(char), size, fd_);
+  if (data_size != size) {
+    LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, data_size);
+    return false;
+  }
+  current_size_ += header_size + data_size;
   int ret = fflush(fd_);
   if (ret != 0) {
     LOG(WARNING, "fail to flush file %s for %s ", filename_.c_str(), strerror(errno));
