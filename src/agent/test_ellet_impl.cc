@@ -21,6 +21,11 @@
 #include "gflags/gflags.h"
 #include "logging.h"
 #include "rpc_client.h"
+#include "time.h"
+
+using ::baidu::common::INFO;
+using ::baidu::common::DEBUG;
+using ::baidu::common::WARNING;
 
 DECLARE_string(ellet_endpoint);
 
@@ -46,12 +51,15 @@ TEST_F(ElLet_Test, DeploySegment) {
   request.set_state(kPaused);
   request.add_segment_ids(10);
   request.add_segment_ids(11);
-  request.set_segment_max_size(1024);
+  request.set_segment_max_size(1024 * 1024 * 5);
   DeploySegmentResponse response;
   ok = client->SendRequest(ellet, &ElLet_Stub::DeploySegment,
       &request,&response, 5, 1);
   ASSERT_EQ(true, ok);
-  for (int i = 0; i < 100; i++) {
+  LOG(INFO, "start sync write 10M to disk");
+  uint64_t consumed = ::baidu::common::timer::get_micros();
+  for (int i = 0; i < 500000; i++) {
+    int64_t i_con = ::baidu::common::timer::get_micros();
     AppendEntryRequest areq;
     LogEntry* entry = areq.mutable_entry();
     entry->set_entry_id(1);
@@ -62,7 +70,10 @@ TEST_F(ElLet_Test, DeploySegment) {
     ok = client->SendRequest(ellet, &ElLet_Stub::AppendEntry,
               &areq, &arep, 5, 1);
     ASSERT_EQ(true, ok);
+    LOG(INFO, "consumed %lld", ::baidu::common::timer::get_micros() - i_con);
   }
+  consumed = ::baidu::common::timer::get_micros() - consumed;
+  LOG(INFO, "write 10M completed with time %lld", consumed);
   delete ellet;
   delete client;
 }
