@@ -20,6 +20,29 @@
 
 namespace el {
 
+LogInfo::LogInfo():log_name_(),
+  log_id_(0),
+  partion_count_(0),
+  partion_replica_(0),
+  state_(kPaused),
+  refs_(0),
+  segments_(),
+  mu_(){}
+
+LogInfo::~LogInfo() {}
+
+void LogInfo::AddRef() {
+  ::baidu::common::atomic_inc(&refs_);
+  assert(refs_ > 0);
+}
+
+void LogInfo::DecRef() {
+  if (::baidu::common::atomic_add(&refs_, -1) == 1) {
+    assert(refs_ == 0);
+    delete this;
+  }
+}
+
 MasterImpl::MasterImpl() {}
 
 MasterImpl::~MasterImpl() {}

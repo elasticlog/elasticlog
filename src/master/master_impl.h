@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include "mutex.h"
 #include "counter.h"
 
@@ -33,6 +34,39 @@ using ::baidu::common::MutexLock;
 
 namespace el {
 
+class MasterImpl;
+
+struct SegmentInfo {
+  uint64_t segment_id_;
+  uint32_t partion_id_;
+  uint64_t log_id_;
+  std::string primary_endpoint_;
+  std::set<std::string> replica_endpoints_;
+};
+
+typedef std::map<uint32_t, std::map<uint64_t, SegmentInfo* > > Segments;
+
+class LogInfo {
+
+public:
+  LogInfo();
+  ~LogInfo();
+
+  void AddRef();
+  void DecRef();
+
+private:
+  std::string log_name_;
+  uint64_t log_id_;
+  uint32_t partion_count_;
+  uint32_t partion_replica_;
+  ElLogState state_;
+  volatile int refs_;
+  Segments segments_;
+  Mutex mu_;
+  friend class MasterImpl;
+};
+
 class MasterImpl : public ElMaster {
 
 public:
@@ -43,6 +77,10 @@ public:
                 const CreateLogRequest* request,
                 CreateLogResponse* response,
                 Closure* done);
+
+private:
+  Mutex mu_;
+  std::map<uint64_t, LogInfo*> logs_;
 };
 
 }
