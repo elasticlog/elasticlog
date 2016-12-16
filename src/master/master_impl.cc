@@ -51,10 +51,24 @@ void MasterImpl::CreateLog(RpcController* controller,
                            const CreateLogRequest* request,
                            CreateLogResponse* response,
                            Closure* done){
-
-
+  LogInfo* log = new LogInfo();
+  log->log_id_ = ++log_id_counter_;
+  log->log_name_ = request->log_name();
+  log->partion_count_ = request->partion_count();
+  log->partion_replica_ = request->partion_replica();
+  log->AddRef();
+  MutexLock lock(&mu_);
+  std::map<uint64_t, LogInfo*>::iterator it = logs_.find(log->log_id_);
+  if (it != logs_.end()) {
+    log->DecRef();
+    response->set_status(kLogExists);
+    done->Run();
+    return;
+  }
+  logs_.insert(std::make_pair(log->log_id_, log));
+  response->set_status(kOk);
+  done->Run();
 }
-
 
 }
 

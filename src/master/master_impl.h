@@ -80,6 +80,7 @@ public:
 
 private:
   Mutex mu_;
+  uint64_t log_id_counter_;
   std::map<uint64_t, LogInfo*> logs_;
 };
 
