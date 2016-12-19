@@ -22,6 +22,12 @@ using ::baidu::common::MutexLock;
 
 namespace el {
 
+enum AppendState {
+  kAppendOk = 0,
+  kNoSegmentAvailable = 10,
+  kLogAppendError = 20
+};
+
 class ElLetImpl;
 
 class ElLog {
@@ -34,7 +40,7 @@ public:
 
   void AddRef();
   void DecRef();
-  bool Append(const char* data, 
+  AppendState Append(const char* data, 
               uint64_t size,
               uint64_t offset);
 private:
