@@ -25,7 +25,7 @@
 namespace el {
 
 struct LogItem {
-  char* data;
+  std::string data;
   uint64_t size;
   uint64_t offset;
 };
