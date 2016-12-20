@@ -2,6 +2,7 @@
 #define EL_CORE_SEGMENT_CODEC_H_
 
 #include <string>
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
