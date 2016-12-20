@@ -34,6 +34,14 @@ bool SegmentReader::Next(LogItem* log_item) {
   return true;
 }
 
+bool SegmentReader::Reset(uint64_t offset) {
+  return true;
+}
+
+void SegmentReader::Close() {
+
+}
+
 }
 
 

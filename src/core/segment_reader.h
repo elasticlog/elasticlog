@@ -36,10 +36,16 @@ public:
   SegmentReader(const std::string& folder,
       const std::string& filename);
   ~SegmentReader();
+  // init segment reader with filename 
   bool Init();
+  // check the segment readable 
   bool Readable();
+  // get next log data
   bool Next(LogItem* log_item);
+  // reset fd offset
+  bool Reset(uint64_t offset);
 
+  void Close();
 private:
   std::string folder_;
   std::string filename_;
