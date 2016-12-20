@@ -44,6 +44,11 @@ struct SegmentInfo {
   std::set<std::string> replica_endpoints_;
 };
 
+struct AgentInfo {
+  std::string endpoint_;
+  uint32_t last_heart_beat_;
+};
+
 typedef std::map<uint32_t, std::map<uint64_t, SegmentInfo* > > Segments;
 
 class LogInfo {

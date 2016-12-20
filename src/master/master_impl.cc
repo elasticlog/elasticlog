@@ -17,6 +17,11 @@
 
 #include "master_impl.h"
 
+#include "logging.h"
+
+using ::baidu::common::INFO;
+using ::baidu::common::WARNING;
+using ::baidu::common::DEBUG;
 
 namespace el {
 
@@ -60,6 +65,8 @@ void MasterImpl::CreateLog(RpcController* controller,
   MutexLock lock(&mu_);
   std::map<uint64_t, LogInfo*>::iterator it = logs_.find(log->log_id_);
   if (it != logs_.end()) {
+    LOG(WARNING, "fail to create log with #id %lld #name %s #partion_count %d #partion_replica %d",
+        log->log_id_, log->log_name_.c_str(), log->partion_count_, log->partion_replica_);
     log->DecRef();
     response->set_status(kLogExists);
     done->Run();
@@ -68,6 +75,8 @@ void MasterImpl::CreateLog(RpcController* controller,
   logs_.insert(std::make_pair(log->log_id_, log));
   response->set_status(kOk);
   done->Run();
+  LOG(WARNING, "create log with #id %lld #name %s #partion_count %d #partion_replica %d successfully",
+        log->log_id_, log->log_name_.c_str(), log->partion_count_, log->partion_replica_);
 }
 
 }
