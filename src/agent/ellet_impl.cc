@@ -42,7 +42,7 @@ bool ElLog::Init() {
   MutexLock lock(&mu_);
   //TODO recover segment info from file
   if (segment_ids.size() < 0) {
-    LOG(WARNING, "invalid segment ids size for log id %ld name %s partion %ld", log_id, log_name.c_str(),
+    LOG(WARNING, "invalid segment ids size for log #id %ld #name %s #partion %ld", log_id, log_name.c_str(),
         partion_id);
     return false;
   }
@@ -54,7 +54,7 @@ bool ElLog::Init() {
   partion_dir_ = ss.str();
   bool ok = MkdirRecur(partion_dir_);
   if (!ok) {
-    LOG(WARNING, "fail to create partion dir %s for log id %ld #name %s", partion_dir_.c_str(),
+    LOG(WARNING, "fail to create partion dir %s for log #id %ld #name %s", partion_dir_.c_str(),
         log_id, log_name.c_str());
     return false;
   }
@@ -87,15 +87,25 @@ void ElLog::Close() {
   }
 }
 
-bool ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
+Status ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
   MutexLock lock(&mu_);
+  bool ok = false;
   if (appender_ != NULL && appender_->Appendable()) {
-    return appender_->Append(data, size, offset);
+    ok = appender_->Append(data, size, offset);
+    if (ok) {
+      return kOk;
+    }
+    return kAppendError;
   }
-  if (Rolling()) {
-    return appender_->Append(data, size, offset);
+  ok = Rolling();
+  if (!ok) {
+    return kNoSegmentAvailable;
   }
-  return false;
+  ok = appender_->Append(data, size, offset);
+  if (ok) {
+    return kOk;
+  }
+  return kAppendError;
 }
 
 bool ElLog::Rolling() {
@@ -159,7 +169,7 @@ void ElLetImpl::AppendEntry(RpcController* controller,
     MutexLock lock(&mu_);
     ElLogs::iterator it = el_logs_.find(request->entry().log_id());
     if (it == el_logs_.end()) {
-      LOG(WARNING, "fail to find log with id %ld", request->entry().log_id());
+      LOG(WARNING, "fail to find log with #id %ld", request->entry().log_id());
       response->set_status(kLogNotFound);
       done->Run();
       return;
@@ -167,16 +177,9 @@ void ElLetImpl::AppendEntry(RpcController* controller,
     el_log = it->second;
     el_log->AddRef();
   }
-  bool ok = el_log->Append(request->entry().content().c_str(),
+  Status ok = el_log->Append(request->entry().content().c_str(),
       request->entry().content().size(),1);
-  if (!ok) {
-    LOG(WARNING, "fail to append data to segment");
-    response->set_status(kAppendError);
-    done->Run();
-    el_log->DecRef();
-    return;
-  }
-  response->set_status(kOk);
+  response->set_status(ok);
   done->Run();
   el_log->DecRef();
 }

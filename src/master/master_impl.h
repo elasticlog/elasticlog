@@ -72,6 +72,7 @@ private:
   friend class MasterImpl;
 };
 
+
 class MasterImpl : public ElMaster {
 
 public:

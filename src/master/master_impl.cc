@@ -48,6 +48,7 @@ void LogInfo::DecRef() {
   }
 }
 
+
 MasterImpl::MasterImpl() {}
 
 MasterImpl::~MasterImpl() {}

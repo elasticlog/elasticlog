@@ -19,7 +19,6 @@ using ::baidu::common::WARNING;
 using ::baidu::common::DEBUG;
 
 DECLARE_string(ellet_endpoint);
-DECLARE_bool(version);
 static volatile bool s_quit = false;
 static void SignalIntHandler(int /*sig*/){
   s_quit = true;
@@ -30,7 +29,8 @@ int main(int argc, char* args[]) {
   if (argc > 1) {
     std::string cmd = args[1];
     if (cmd == "version"
-        || cmd == "--version") {
+        || cmd == "--version"
+        || cmd == "-v") {
       printf("ellet version %d.%d \n", EL_VERSION_MAJOR, EL_VERSION_MINOR);
       return 0;
     }
