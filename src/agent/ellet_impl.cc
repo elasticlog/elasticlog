@@ -87,15 +87,15 @@ void ElLog::Close() {
   }
 }
 
-AppendState ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
+Status ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
   MutexLock lock(&mu_);
   bool ok = false;
   if (appender_ != NULL && appender_->Appendable()) {
     ok = appender_->Append(data, size, offset);
     if (ok) {
-      return kAppendOk;
+      return kOk;
     }
-    return kLogAppendError;
+    return kAppendError;
   }
   ok = Rolling();
   if (!ok) {
@@ -103,9 +103,9 @@ AppendState ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
   }
   ok = appender_->Append(data, size, offset);
   if (ok) {
-    return kAppendOk;
+    return kOk;
   }
-  return kLogAppendError;
+  return kAppendError;
 }
 
 bool ElLog::Rolling() {
@@ -177,19 +177,11 @@ void ElLetImpl::AppendEntry(RpcController* controller,
     el_log = it->second;
     el_log->AddRef();
   }
-  AppendState ok = el_log->Append(request->entry().content().c_str(),
+  Status ok = el_log->Append(request->entry().content().c_str(),
       request->entry().content().size(),1);
-  if (ok == kAppendOk) {
-    response->set_status(kOk);
-    done->Run();
-    el_log->DecRef();
-    return;
-  }
-  LOG(WARNING, "fail to append data to segment with return code %ld", ok);
-  response->set_status(kAppendError);
+  response->set_status(ok);
   done->Run();
   el_log->DecRef();
-  return;
 }
 
 void ElLetImpl::DeploySegment(RpcController* controller,
