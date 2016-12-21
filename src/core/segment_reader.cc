@@ -17,19 +17,31 @@
 
 #include "segment_reader.h"
 
+#include "logging.h"
+
+using ::baidu::common::INFO;
+using ::baidu::common::DEBUG;
+using ::baidu::common::WARNING;
+
 namespace el {
 
 const static uint64_t HEADER_SIZE = 10 + 8 * 2;
 
 SegmentReader::SegmentReader(const std::string& folder,
     const std::string& filename):folder_(folder),
-  filename_(filename), fd_(NULL),codec_() {}
+  filename_(filename),current_offset_(0),
+  fd_(NULL),codec_() {}
 
 SegmentReader::~SegmentReader() {}
 
 bool SegmentReader::Init() {
-
-  return false;
+  std::string path = folder_ + "/" + filename_;
+  fd_ = fopen(path.c_str(), "rb");
+  if (fd_ == NULL) {
+    LOG(WARNING, "fail to create segment %s", path.c_str());
+    return false;
+  }
+  return true;
 }
 
 bool SegmentReader::Next(LogItem* log_item) {
