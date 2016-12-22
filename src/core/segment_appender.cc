@@ -10,7 +10,6 @@
 using ::baidu::common::INFO;
 using ::baidu::common::WARNING;
 using ::baidu::common::DEBUG;
-using ::baidu::common::MutexLock;
 
 namespace el {
 
