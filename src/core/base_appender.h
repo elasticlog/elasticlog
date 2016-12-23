@@ -28,18 +28,22 @@ class BaseAppender {
 
 public:
   BaseAppender(const std::string& filename,
-      const std::string& folder);
+      const std::string& folder,
+      uint64_t max_size);
   ~BaseAppender();
   bool Init();
-  int64_t Append(const char* buf);
+  int64_t Append(const char* buf, uint64_t size);
   bool Flush();
   bool Sync();
   void Close();
+  bool IsFull();
 private:
   std::string filename_;
   std::string folder_;
   uint64_t current_size_;
+  uint64_t max_size_;
   FILE* fd_;
+  int fd_no_;
 };
 
 }

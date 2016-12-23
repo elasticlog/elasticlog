@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "mutex.h"
 #include "segment_codec.h"
+#include "base_appender.h"
 
 namespace el {
 
@@ -18,21 +19,15 @@ public:
 
   bool Init();
 
-  bool Appendable();
-  //
   bool Append(const char* data, uint64_t size, uint64_t offset);
 
   bool Sync();
 
   void Close();
 private:
-  std::string folder_;
-  std::string filename_;
-  uint64_t max_size_;
 
-  uint64_t current_size_;
-  FILE* fd_;
   SegmentCodec codec_;
+  BaseAppender appender_;
 };
 
 }
