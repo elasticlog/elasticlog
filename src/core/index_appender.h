@@ -15,13 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SEGMENT_INDEXER_H
-#define SEGMENT_INDEXER_H
+#ifndef INDEX_APPENDER_H
+#define INDEX_APPENDER_H
 
 #include <string>
 #include <map>
 #include <stdint.h>
 #include "segment_codec.h"
+#include "base_appender.h"
 
 namespace el {
 
@@ -31,12 +32,13 @@ struct EntryIndex {
 };
 
 // thread unsafe
-class SegmentIndexer {
+class IndexAppender {
 
 public:
-  SegmentIndexer(const std::string& filename,
-      const std::string& folder);
-  ~SegmentIndexer();
+  IndexAppender(const std::string& filename,
+      const std::string& folder,
+      uint64_t max_size);
+  ~IndexAppender();
 
   // Init segment indexer
   bool Init();
@@ -49,33 +51,18 @@ public:
   bool Put(uint64_t offset, uint64_t start,
            uint64_t size);
 
-  // Get index log meta
-  // input
-  // offset:log id
-  // output
-  // start :the segment block start offset
-  // size  :the entry data size
-  bool Get(uint64_t offset, uint64_t* start,
-      uint64_t* size);
-
   void Close();
 
 private:
-  // the index file name
-  std::string filename_;
-  // the folder of index file
-  std::string folder_;
-
-  bool cache_;
-  FILE* fd_;
 
   // the cache of index
   std::map<uint64_t, EntryIndex*> idx_;
   SegmentCodec codec_;
+  BaseAppender appender_;
 };
 
 }
 
-#endif /* !SEGMENT_INDEXER_H */
+#endif /* !INDEX_APPENDER_H */
 
 /* vim: set expandtab ts=2 sw=2 sts=2 tw=100: */

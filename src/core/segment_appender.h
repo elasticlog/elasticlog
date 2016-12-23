@@ -5,6 +5,7 @@
 #include "mutex.h"
 #include "segment_codec.h"
 #include "base_appender.h"
+#include "index_appender.h"
 
 namespace el {
 
@@ -12,8 +13,8 @@ class SegmentAppender {
 
 public:
   SegmentAppender(const std::string& folder, 
-                 const std::string& filename,
-                 uint64_t max_size);
+                  const std::string& filename,
+                  uint64_t max_size);
 
   ~SegmentAppender();
 
@@ -24,10 +25,12 @@ public:
   bool Sync();
 
   void Close();
+
 private:
 
   SegmentCodec codec_;
   BaseAppender appender_;
+  IndexAppender idx_appender_;
 };
 
 }

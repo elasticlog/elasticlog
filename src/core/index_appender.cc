@@ -15,7 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "segment_indexer.h"
+#include "index_appender.h"
+
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -29,36 +30,18 @@ using ::baidu::common::WARNING;
 namespace el {
 
 
-SegmentIndexer::SegmentIndexer(const std::string& filename,
+IndexAppender::IndexAppender(const std::string& filename,
     const std::string& folder,
-    bool cache):filename_(filename),folder_(folder), cache_(cache),
-  codec_(){}
+    uint64_t max_size):idx_(),
+  codec_(),appender_(filename, folder, max_size){}
 
+IndexAppender::~IndexAppender() {}
 
-SegmentIndexer::~SegmentIndexer() {}
-
-bool SegmentIndexer::Init() {
-  std::string path = folder_ + "/" + filename_;
-  if (cache_) {
-    fd_ = fopen(path.c_str(), "rb");
-  }else {
-    fd_ = fopen(path.c_str(), "ab+");
-  }
-  if (fd_ == NULL) {
-    LOG(WARNING, "fail to create index %s", path.c_str());
-    return false;
-  }
-  /*int file_no = fileno(fd_);
-  struct stat sb;
-  int ok = fstat(file_no, &sb);
-  if (ok != 0) {
-    LOG(WARNING, "fail to get index %s stat for %s", path.c_str(), strerror(errno));
-    return false;
-  }*/
-  return true;
+bool IndexAppender::Init() { 
+  return appender_.Init();
 }
 
-bool SegmentIndexer::Put(uint64_t offset, uint64_t start,
+bool IndexAppender::Put(uint64_t offset, uint64_t start,
     uint64_t size) {
   std::string header_buf;
   SegmentHeader header;
@@ -69,21 +52,19 @@ bool SegmentIndexer::Put(uint64_t offset, uint64_t start,
     LOG(WARNING, "fail to encode header");
     return false;
   }
-  size_t header_size = fwrite(header_buf.data(), sizeof(char), header_buf.size(), fd_);
-  if (header_size != header_buf.size()) {
-    LOG(WARNING, "fail to write header buf size %ld, real size %ld", header_buf.size(),
-            header_size);
+  int64_t write_size = appender_.Append(header_buf.data(), header_buf.size());
+  if (write_size != header_buf.size()) {
+    LOG(WARNING, "fail to append index");
     return false;
   }
-  int ret = fflush(fd_);
-  if (ret != 0) {
-    LOG(WARNING, "fail to flush index %s for %s", filename_.c_str(),
-        strerror(errno));
-    return false;
-  }
+  appender_.Flush();
   return true;
 }
 
+bool IndexAppender::Close() {
+  appender_.Sync();
+  appender_.Close();
+}
 
 }
 
