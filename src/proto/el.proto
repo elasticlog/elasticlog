@@ -2,5 +2,15 @@ package el;
 
 enum Status {
   kOk = 0;
-  kRpcErr = 1;
+  kRpcErr = 30;
+  kInitElLogError = 31;
+  kAppendError = 32;
+  kLogExists = 40;
+  kLogNotFound = 41;
+  kNoSegmentAvailable = 42;
+}
+
+enum ElLogState {
+  kPaused = 1;
+  kRunning = 2;
 }

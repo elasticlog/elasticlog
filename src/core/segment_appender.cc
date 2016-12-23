@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include "logging.h"
+#include "timer.h"
 
 using ::baidu::common::INFO;
 using ::baidu::common::WARNING;
@@ -31,6 +32,7 @@ bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
   if (appender_.IsFull()) {
     return false; 
   }
+  uint64_t consumed = ::baidu::common::timer::get_micros();
   std::string header_buf;
   SegmentHeader header;
   header.offset = offset;
@@ -53,7 +55,8 @@ bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
     LOG(WARNING, "fail to flush file %s for %s ", filename_.c_str(), strerror(errno));
     return false;
   }
-  LOG(DEBUG, "flush data to %s successfully", filename_.c_str());
+  consumed = ::baidu::common::timer::get_micros() - consumed;
+  LOG(DEBUG, "flush data to %s successfully consumed %lld", filename_.c_str(), consumed);
   return true;
 }
 

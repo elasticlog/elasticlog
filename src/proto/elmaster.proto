@@ -3,12 +3,15 @@ import "el.proto";
 
 option cc_generic_services = true;
 
-message CreateLogRequest {}
+message CreateLogRequest {
+  optional string log_name = 1;
+  optional uint32 partion_count = 2;
+  optional uint32 partion_replica = 3;
+}
 
 message CreateLogResponse {
   optional Status status = 1;
 }
-
 
 service ElMaster {
   rpc CreateLog(CreateLogRequest) returns (CreateLogResponse);

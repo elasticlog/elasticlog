@@ -10,14 +10,34 @@ message LogEntry {
   optional bytes content = 4;
 }
 
-message AppendLogRequest {
+message AppendEntryRequest {
   optional LogEntry entry = 1;
 }
 
-message AppendLogResponse {
+message AppendEntryResponse {
   optional Status status = 1;
 }
 
+message DeploySegmentRequest {
+  optional uint64 log_id = 1;
+  optional string log_name = 2;
+  optional uint32 partion_id = 3;
+  optional string primary_endpoint = 4;
+  repeated string replica_endpoints = 5;
+  optional ElLogState state = 6;
+  repeated uint64 segment_ids = 7;
+  optional uint64 segment_max_size = 8;
+}
+
+message DeploySegmentResponse {
+  optional Status status = 1;
+}
+
+
 service ElLet {
-  rpc AppendLog(AppendLogRequest) returns (AppendLogResponse);
+  // handle sdk requests
+  rpc AppendEntry(AppendEntryRequest) returns (AppendEntryResponse);
+
+  // handle master requests
+  rpc DeploySegment(DeploySegmentRequest) returns (DeploySegmentResponse);
 }
