@@ -15,35 +15,31 @@ using ::baidu::common::DEBUG;
 namespace el {
 
 SegmentAppender::SegmentAppender(const std::string& folder,
-    const std::string& filename, uint64_t max_size):codec_(),
-  appender_(filename, folder, max_size){}
+    const std::string& segment_name ,
+    const std::string& index_name,
+    uint64_t segment_max_size,
+    uint64_t index_max_size):codec_(),
+  appender_(segment_name, folder, segment_max_size),
+  idx_appender_(index_name, folder, index_max_size){}
 
 SegmentAppender::~SegmentAppender(){}
 
 bool SegmentAppender::Init() {
-  return appender_.Init();
+  bool ok =  appender_.Init();
+  if (!ok) {
+    return false;
+  }
+  ok = idx_appender_.Init();
+  return ok;
 }
 
-bool SegmentAppender::Appendable() {
-  return max_size_ > current_size_;
-}
-
+// Append log data to segment
+// 1.get current segment offset
 bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
   if (appender_.IsFull()) {
     return false; 
   }
   uint64_t consumed = ::baidu::common::timer::get_micros();
-  std::string header_buf;
-  SegmentHeader header;
-  header.offset = offset;
-  header.data_size = size;
-  bool ok = codec_.Encode(header, &header_buf);
-  int64_t header_size = appender_.Append(header_buf.data(), header_buf.size());
-  if (header_size != header_buf.size()) {
-    LOG(WARNING, "fail to write header buf size %ld, real size %ld", header_buf.size(),
-            header_size);
-    return false;
-  }
   int data_size = fwrite(data, sizeof(char), size, fd_);
   if (data_size != size) {
     LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, data_size);

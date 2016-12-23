@@ -124,6 +124,11 @@ bool BaseAppender::IsFull() {
   return current_size_ >= max_size_;
 }
 
+//TODO find a better way to get position
+uint64_t BaseAppender::Position() {
+  return current_size_;
+}
+
 }
 
 /* vim: set expandtab ts=2 sw=2 sts=2 tw=100: */

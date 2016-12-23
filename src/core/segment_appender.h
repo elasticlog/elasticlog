@@ -13,8 +13,10 @@ class SegmentAppender {
 
 public:
   SegmentAppender(const std::string& folder, 
-                  const std::string& filename,
-                  uint64_t max_size);
+                  const std::string& segment_name,
+                  const std::string& index_name,
+                  uint64_t segment_max_size,
+                  uint64_t index_max_size);
 
   ~SegmentAppender();
 

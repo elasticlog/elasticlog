@@ -37,6 +37,7 @@ public:
   bool Sync();
   void Close();
   bool IsFull();
+  uint64_t Position();
 private:
   std::string filename_;
   std::string folder_;
