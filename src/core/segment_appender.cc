@@ -11,102 +11,70 @@
 using ::baidu::common::INFO;
 using ::baidu::common::WARNING;
 using ::baidu::common::DEBUG;
-using ::baidu::common::MutexLock;
 
 namespace el {
 
 SegmentAppender::SegmentAppender(const std::string& folder,
-    const std::string& filename, uint64_t max_size):folder_(folder),
-  filename_(filename),max_size_(max_size),current_size_(0),fd_(NULL),
-    codec_(){}
+    const std::string& segment_name ,
+    const std::string& index_name,
+    uint64_t segment_max_size,
+    uint64_t index_max_size):segment_name_(segment_name),codec_(),
+  data_appender_(segment_name, folder, segment_max_size),
+  idx_appender_(index_name, folder, index_max_size){}
 
 SegmentAppender::~SegmentAppender(){}
 
 bool SegmentAppender::Init() {
-  std::string path = folder_ + "/" + filename_;
-  fd_ = fopen(path.c_str(), "ab+");
-  if (fd_ == NULL) {
-    LOG(WARNING, "fail to create segment %s", path.c_str());
+  bool ok =  data_appender_.Init();
+  if (!ok) {
     return false;
   }
-  int file_no = fileno(fd_);
-  struct stat sb;
-  int ok = fstat(file_no, &sb);
-  if (ok != 0) {
-    LOG(WARNING, "fail to get segment %s stat for %s", path.c_str(), strerror(errno));
-    return false;
-  }
-  current_size_ = sb.st_size;
-  LOG(INFO, "init segment %s in %s with size %ld and fd %d ok", filename_.c_str(),
-          folder_.c_str(),
-          current_size_, file_no);
-  return true;
+  ok = idx_appender_.Init();
+  return ok;
 }
 
-bool SegmentAppender::Appendable() {
-  return max_size_ > current_size_;
-}
-
+// Append log data to segment
+// 1.get current segment offset
+// 2.write data to segment file
+// 3.write index file
 bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
-  if (!Appendable()) {
+  if (data_appender_.IsFull()) {
+    LOG(WARNING, "segment file %s is full", segment_name_.c_str());
     return false; 
   }
   uint64_t consumed = ::baidu::common::timer::get_micros();
-  std::string header_buf;
-  SegmentHeader header;
-  header.offset = offset;
-  header.data_size = size;
-  bool ok = codec_.Encode(header, &header_buf);
-  //TODO two io requests vs one io request but one more copy
-  int header_size = fwrite(header_buf.data(), sizeof(char), header_buf.size(), fd_);
-  if (header_size != header_buf.size()) {
-    LOG(WARNING, "fail to write header buf size %ld, real size %ld", header_buf.size(),
-            header_size);
+  uint64_t start = data_appender_.Position();
+  int64_t write_size = data_appender_.Append(data, size);
+  if (write_size != size) {
+    LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, write_size);
     return false;
   }
-  int data_size = fwrite(data, sizeof(char), size, fd_);
-  if (data_size != size) {
-    LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, data_size);
+  bool ok = idx_appender_.Put(offset, start, size);
+  if (!ok) {
+    LOG(WARNING, "fail to add data idx for segment %s", segment_name_.c_str());
     return false;
   }
-  current_size_ += header_size + data_size;
-  int ret = fflush(fd_);
-  if (ret != 0) {
-    LOG(WARNING, "fail to flush file %s for %s ", filename_.c_str(), strerror(errno));
-    return false;
-  }
+  data_appender_.Flush();
   consumed = ::baidu::common::timer::get_micros() - consumed;
-  LOG(DEBUG, "flush data to %s successfully consumed %lld", filename_.c_str(), consumed);
+  LOG(DEBUG, "write data to segment %s consumed %lld",
+      segment_name_.c_str(), consumed);
   return true;
 }
 
 bool SegmentAppender::Sync() {
-  if (fd_ == NULL) {
-    return false; 
-  }
-  int file_no = fileno(fd_);
-  int ret = fsync(file_no);
-  if (ret != 0) {
-    LOG(WARNING, "fail to fsync fd %ld with filename %s for %s",
-        file_no, filename_.c_str(), strerror(errno));
+  bool ok = data_appender_.Sync();
+  if (!ok) {
+    LOG(WARNING, "fail to fsync segment %s for %s",
+        segment_name_.c_str(), strerror(errno));
     return false;
   }
-  LOG(DEBUG, "sync segment file %s successfully", filename_.c_str());
+  LOG(DEBUG, "sync segment file %s successfully", segment_name_.c_str());
   return true;
 }
 
 void SegmentAppender::Close() {
-  if (fd_ == NULL) {
-    return; 
-  }
-  int ret = fclose(fd_);
-  if (ret != 0) {
-    LOG(WARNING, "fail to close filename %s for %s", filename_.c_str(),
-        strerror(errno));
-    return;
-  }
-  LOG(DEBUG, "close segment file %s successfully", filename_.c_str());
-  fd_ = NULL;
+  data_appender_.Close();
+  idx_appender_.Close();
 }
 
 }
