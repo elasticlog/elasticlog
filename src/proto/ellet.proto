@@ -27,6 +27,7 @@ message DeploySegmentRequest {
   optional ElLogState state = 6;
   repeated uint64 segment_ids = 7;
   optional uint64 segment_max_size = 8;
+  optional uint64 idx_max_size = 9;
 }
 
 message DeploySegmentResponse {

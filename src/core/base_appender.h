@@ -19,6 +19,7 @@
 #define BASE_APPENDER_H
 
 #include <stdio.h>
+#include <stdint.h>
 #include <string>
 
 namespace el {

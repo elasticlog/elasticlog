@@ -21,10 +21,10 @@ public:
 };
 
 TEST_F(SA_Test, Init) {
-  SegmentAppender appender("/tmp", "0.segm", 1024 * 1024);
+  SegmentAppender appender("/tmp", "0.segm", "0.idx", 1024 * 1024, 1024 * 1024);
   bool ok = appender.Init();
   ASSERT_EQ(true, ok);
-  std::string data ="hello world!";
+  std::string data ="hello elasticlog xxxxxxxxxxxxxxxx!";
   uint64_t offset  = 64;
   ok = appender.Append(data.c_str(), data.size(), offset);
   ASSERT_EQ(true, ok);

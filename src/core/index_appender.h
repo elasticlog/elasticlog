@@ -51,12 +51,11 @@ public:
   bool Put(uint64_t offset, uint64_t start,
            uint64_t size);
 
+  bool Sync();
   void Close();
 
 private:
 
-  // the cache of index
-  std::map<uint64_t, EntryIndex*> idx_;
   SegmentCodec codec_;
   BaseAppender appender_;
 };

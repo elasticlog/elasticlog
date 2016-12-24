@@ -25,7 +25,7 @@ using ::baidu::common::WARNING;
 
 namespace el {
 
-const static uint64_t HEADER_SIZE = 10 + 8 * 2;
+const static uint64_t HEADER_SIZE = 2 + 8 * 2;
 
 SegmentReader::SegmentReader(const std::string& folder,
     const std::string& filename):folder_(folder),

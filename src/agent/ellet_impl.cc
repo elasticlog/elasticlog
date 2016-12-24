@@ -32,6 +32,7 @@ ElLog::ElLog():log_id(0),
   current_segment_id_(0),
   mu_(),
   segment_max_size_(0),
+  index_max_size_(0),
   partion_dir_(){}
 
 ElLog::~ElLog() {
@@ -90,7 +91,7 @@ void ElLog::Close() {
 Status ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
   MutexLock lock(&mu_);
   bool ok = false;
-  if (appender_ != NULL && appender_->Appendable()) {
+  if (appender_ != NULL) {
     ok = appender_->Append(data, size, offset);
     if (ok) {
       return kOk;
@@ -136,9 +137,13 @@ bool ElLog::Rolling() {
   if (ret) {
     std::stringstream segment_ss;
     segment_ss << current_segment_id_ << ".segm";
+    std::stringstream idx_ss;
+    idx_ss << current_segment_id_ << ".idx";
     std::string segment_name = segment_ss.str();
-    appender_ = new SegmentAppender(partion_dir_, segment_name,
-        segment_max_size_);
+    std::string index_name = idx_ss.str();
+    appender_ = new SegmentAppender(partion_dir_, segment_name,index_name,
+        segment_max_size_,
+        index_max_size_);
     bool ok = appender_->Init();
     if (!ok) {
       delete appender_;
@@ -194,6 +199,7 @@ void ElLetImpl::DeploySegment(RpcController* controller,
   el_log->partion_id = request->partion_id();
   el_log->primary_endpoint = request->primary_endpoint();
   el_log->segment_max_size_ = request->segment_max_size();
+  el_log->index_max_size_ = request->idx_max_size();
   std::stringstream ids;
   for (int i = 0; i < request->replica_endpoints_size(); ++i) {
     el_log->replica_endpoints.insert(request->replica_endpoints(i));

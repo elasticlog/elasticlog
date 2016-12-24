@@ -18,14 +18,14 @@ SegmentAppender::SegmentAppender(const std::string& folder,
     const std::string& segment_name ,
     const std::string& index_name,
     uint64_t segment_max_size,
-    uint64_t index_max_size):codec_(),
-  appender_(segment_name, folder, segment_max_size),
+    uint64_t index_max_size):segment_name_(segment_name),codec_(),
+  data_appender_(segment_name, folder, segment_max_size),
   idx_appender_(index_name, folder, index_max_size){}
 
 SegmentAppender::~SegmentAppender(){}
 
 bool SegmentAppender::Init() {
-  bool ok =  appender_.Init();
+  bool ok =  data_appender_.Init();
   if (!ok) {
     return false;
   }
@@ -35,54 +35,46 @@ bool SegmentAppender::Init() {
 
 // Append log data to segment
 // 1.get current segment offset
+// 2.write data to segment file
+// 3.write index file
 bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
-  if (appender_.IsFull()) {
+  if (data_appender_.IsFull()) {
+    LOG(WARNING, "segment file %s is full", segment_name_.c_str());
     return false; 
   }
   uint64_t consumed = ::baidu::common::timer::get_micros();
-  int data_size = fwrite(data, sizeof(char), size, fd_);
-  if (data_size != size) {
-    LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, data_size);
+  uint64_t start = data_appender_.Position();
+  int64_t write_size = data_appender_.Append(data, size);
+  if (write_size != size) {
+    LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, write_size);
     return false;
   }
-  current_size_ += header_size + data_size;
-  int ret = fflush(fd_);
-  if (ret != 0) {
-    LOG(WARNING, "fail to flush file %s for %s ", filename_.c_str(), strerror(errno));
+  bool ok = idx_appender_.Put(offset, start, size);
+  if (!ok) {
+    LOG(WARNING, "fail to add data idx for segment %s", segment_name_.c_str());
     return false;
   }
+  data_appender_.Flush();
   consumed = ::baidu::common::timer::get_micros() - consumed;
-  LOG(DEBUG, "flush data to %s successfully consumed %lld", filename_.c_str(), consumed);
+  LOG(DEBUG, "write data to segment %s consumed %lld",
+      segment_name_.c_str(), consumed);
   return true;
 }
 
 bool SegmentAppender::Sync() {
-  if (fd_ == NULL) {
-    return false; 
-  }
-  int file_no = fileno(fd_);
-  int ret = fsync(file_no);
-  if (ret != 0) {
-    LOG(WARNING, "fail to fsync fd %ld with filename %s for %s",
-        file_no, filename_.c_str(), strerror(errno));
+  bool ok = data_appender_.Sync();
+  if (!ok) {
+    LOG(WARNING, "fail to fsync segment %s for %s",
+        segment_name_.c_str(), strerror(errno));
     return false;
   }
-  LOG(DEBUG, "sync segment file %s successfully", filename_.c_str());
+  LOG(DEBUG, "sync segment file %s successfully", segment_name_.c_str());
   return true;
 }
 
 void SegmentAppender::Close() {
-  if (fd_ == NULL) {
-    return; 
-  }
-  int ret = fclose(fd_);
-  if (ret != 0) {
-    LOG(WARNING, "fail to close filename %s for %s", filename_.c_str(),
-        strerror(errno));
-    return;
-  }
-  LOG(DEBUG, "close segment file %s successfully", filename_.c_str());
-  fd_ = NULL;
+  data_appender_.Close();
+  idx_appender_.Close();
 }
 
 }

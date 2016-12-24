@@ -32,8 +32,7 @@ namespace el {
 
 IndexAppender::IndexAppender(const std::string& filename,
     const std::string& folder,
-    uint64_t max_size):idx_(),
-  codec_(),appender_(filename, folder, max_size){}
+    uint64_t max_size):codec_(),appender_(filename, folder, max_size){}
 
 IndexAppender::~IndexAppender() {}
 
@@ -52,7 +51,8 @@ bool IndexAppender::Put(uint64_t offset, uint64_t start,
     LOG(WARNING, "fail to encode header");
     return false;
   }
-  int64_t write_size = appender_.Append(header_buf.data(), header_buf.size());
+  int64_t write_size = appender_.Append(header_buf.data(), 
+      header_buf.size());
   if (write_size != header_buf.size()) {
     LOG(WARNING, "fail to append index");
     return false;
@@ -61,7 +61,11 @@ bool IndexAppender::Put(uint64_t offset, uint64_t start,
   return true;
 }
 
-bool IndexAppender::Close() {
+bool IndexAppender::Sync() {
+  return appender_.Sync();
+}
+
+void IndexAppender::Close() {
   appender_.Sync();
   appender_.Close();
 }

@@ -55,6 +55,7 @@ private:
   uint64_t current_segment_id_;
   Mutex mu_;
   uint64_t segment_max_size_;
+  uint64_t index_max_size_;
   std::string partion_dir_;
   friend class ElLetImpl;
 };

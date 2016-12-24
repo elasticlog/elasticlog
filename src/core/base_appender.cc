@@ -32,7 +32,7 @@ using ::baidu::common::DEBUG;
 namespace el {
 
 BaseAppender::BaseAppender(const std::string& filename,
-    const std::string& folder, uint64_t max_size):filename_(filename_),
+    const std::string& folder, uint64_t max_size):filename_(filename),
   folder_(folder),
   current_size_(0),
   max_size_(max_size),
@@ -106,7 +106,7 @@ bool BaseAppender::Sync() {
 
 }
 
-bool BaseAppender::Close() {
+void BaseAppender::Close() {
   if (fd_ == NULL) {
     return; 
   }

@@ -29,9 +29,9 @@ public:
   void Close();
 
 private:
-
+  std::string segment_name_;
   SegmentCodec codec_;
-  BaseAppender appender_;
+  BaseAppender data_appender_;
   IndexAppender idx_appender_;
 };
 
