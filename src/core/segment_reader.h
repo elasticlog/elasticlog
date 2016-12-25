@@ -20,7 +20,9 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <map>
 #include "segment_codec.h"
+#include "index_appender.h"
 
 namespace el {
 
@@ -34,7 +36,7 @@ class SegmentReader {
 
 public:
   SegmentReader(const std::string& folder,
-      const std::string& filename);
+                const std::string& filename);
   ~SegmentReader();
   // init segment reader with filename 
   bool Init();
@@ -45,6 +47,8 @@ public:
   // reset fd offset
   bool Reset(uint64_t offset);
 
+  void PutIdxCache(uint64_t entry_id, EntryIndex* idx);
+
   void Close();
 private:
   std::string folder_;
@@ -52,6 +56,9 @@ private:
 
   uint64_t current_offset_;
   FILE* fd_;
+
+  std::map<uint64_t, EntryIndex*> idx_cache_;
+  uint64_t last_entry_id_;
   SegmentCodec codec_;
 };
 

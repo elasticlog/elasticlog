@@ -30,7 +30,9 @@ const static uint64_t HEADER_SIZE = 2 + 8 * 2;
 SegmentReader::SegmentReader(const std::string& folder,
     const std::string& filename):folder_(folder),
   filename_(filename),current_offset_(0),
-  fd_(NULL),codec_() {}
+  fd_(NULL),idx_cache_(),
+  last_entry_id_(0),
+  codec_() {}
 
 SegmentReader::~SegmentReader() {}
 
@@ -41,30 +43,38 @@ bool SegmentReader::Init() {
     LOG(WARNING, "fail to create segment %s", path.c_str());
     return false;
   }
+  //TODO load index
   return true;
 }
 
 bool SegmentReader::Next(LogItem* log_item) {
-  std::string header;
-  header.resize(HEADER_SIZE);
-  //TODO guarantee read next log item
-  char* hbuf = reinterpret_cast<char*>(& (header[0]));
-  size_t read_size = fread(hbuf, HEADER_SIZE, sizeof(char), fd_);
-  if (read_size < HEADER_SIZE) {
-    // reset
-    return false;
+
+  std::map<uint64_t, EntryIndex*>::iterator it = idx_cache_.find(last_entry_id_);
+  ++it;
+  if (it != idx_cache_.end()) {
+    uint64_t entry_id = it->first;
+    log_item->size = it->second->size;
+    log_item->data.resize(log_item->size);
+    //check if need seek
+    if (current_offset_ == it->second.start) {
+      char* dbuf = reinterpret_cast<char*>(& (log_item->data[0]));
+      read_size = fread(dbuf, log_item->size, sizeof(char), fd_);
+      if (read_size < log_item->size) {
+        return false;
+      }
+      last_entry_id_ = entry_id;
+      current_offset_ += read_size;
+      return true;
+    }else {
+      //TODO seek and read
+    }
   }
-  SegmentHeader sheader;
-  bool ok = codec_.Decode(&header, &sheader);
-  log_item->size = sheader.data_size;
-  log_item->offset = sheader.offset;
-  log_item->data.resize(sheader.data_size);
-  char* dbuf = reinterpret_cast<char*>(& (log_item->data[0]));
-  read_size = fread(dbuf, log_item->size, sizeof(char), fd_);
-  if (read_size < log_item->size) {
-    return false;
-  }
-  return true;
+  LOG(WARNING, "fail to find next log to read, last log id %lld", last_entry_id_);
+  return false;
+}
+
+void SegmentReader::PutIdxCache(uint64_t entry_id, EntryIndex* idx) {
+  idx_cache_.insert(std::make_pair(entry_id, idx));
 }
 
 bool SegmentReader::Reset(uint64_t offset) {

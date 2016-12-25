@@ -6,6 +6,7 @@
  */
 
 #include "segment_appender.h"
+#include "segment_reader.h"
 
 #include "gtest/gtest.h"
 #include "logging.h"

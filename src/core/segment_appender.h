@@ -22,7 +22,13 @@ public:
 
   bool Init();
 
-  bool Append(const char* data, uint64_t size, uint64_t offset);
+  // append data to segment with  entry id 
+  bool Append(const char* data, uint64_t size, uint64_t entry_id);
+
+  bool Append(const char* data, 
+      uint64_t size, 
+      uint64_t entry_id,
+      EntryIndex* idx);
 
   bool Sync();
 

@@ -37,7 +37,12 @@ bool SegmentAppender::Init() {
 // 1.get current segment offset
 // 2.write data to segment file
 // 3.write index file
-bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
+bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t entry_id) {
+  return Append(data, size, entry_id, NULL); 
+}
+
+bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t entry_id,
+    EntryIndex* idx) {
   if (data_appender_.IsFull()) {
     LOG(WARNING, "segment file %s is full", segment_name_.c_str());
     return false; 
@@ -49,10 +54,14 @@ bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
     LOG(WARNING, "fail to write data buf size %ld, real size %ld", size, write_size);
     return false;
   }
-  bool ok = idx_appender_.Put(offset, start, size);
+  bool ok = idx_appender_.Put(entry_id, start, size);
   if (!ok) {
     LOG(WARNING, "fail to add data idx for segment %s", segment_name_.c_str());
     return false;
+  }
+  if (idx != NULL) {
+    idx.start = start;
+    idx.size = size;
   }
   data_appender_.Flush();
   consumed = ::baidu::common::timer::get_micros() - consumed;
@@ -60,6 +69,8 @@ bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t offset) {
       segment_name_.c_str(), consumed);
   return true;
 }
+
+
 
 bool SegmentAppender::Sync() {
   bool ok = data_appender_.Sync();

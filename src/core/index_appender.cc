@@ -51,6 +51,8 @@ bool IndexAppender::Put(uint64_t offset, uint64_t start,
     LOG(WARNING, "fail to encode header");
     return false;
   }
+  
+  //TODO slidewindow
   int64_t write_size = appender_.Append(header_buf.data(), 
       header_buf.size());
   if (write_size != header_buf.size()) {
