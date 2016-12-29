@@ -14,6 +14,7 @@
 #include "mutex.h"
 #include "counter.h"
 #include "segment_appender.h"
+#include "segment_reader.h"
 
 using ::google::protobuf::RpcController;
 using ::google::protobuf::Closure;
@@ -35,8 +36,8 @@ public:
   void AddRef();
   void DecRef();
   Status Append(const char* data, 
-              uint64_t size,
-              uint64_t offset);
+                uint64_t size,
+                uint64_t offset);
 private:
   // create a new segment for next segment ids;
   bool Rolling();
@@ -51,7 +52,6 @@ private:
   ElLogState state;
   volatile int refs_;
   std::vector<uint64_t> segment_ids;
-  SegmentAppender* appender_;
   uint64_t current_segment_id_;
   Mutex mu_;
   uint64_t segment_max_size_;

@@ -32,16 +32,19 @@ struct LogItem {
   uint64_t offset;
 };
 
+struct ReadSession {
+  FILE* fd_;
+  uint64_t last_read_offset_;
+  uint32_t sid_;
+};
+
 class SegmentReader {
 
 public:
   SegmentReader(const std::string& folder,
                 const std::string& filename);
   ~SegmentReader();
-  // init segment reader with filename 
-  bool Init();
-  // check the segment readable 
-  bool Readable();
+  bool AddSession(uint32_t* sid);
   // get next log data
   bool Next(LogItem* log_item);
   // reset fd offset
@@ -54,11 +57,10 @@ private:
   std::string folder_;
   std::string filename_;
 
-  uint64_t current_offset_;
-  FILE* fd_;
+  uint64_t sid_counter_;
 
+  std::map<uint32_t, ReadSession*> sessions_;
   std::map<uint64_t, EntryIndex*> idx_cache_;
-  uint64_t last_entry_id_;
   SegmentCodec codec_;
 };
 

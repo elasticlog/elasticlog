@@ -29,21 +29,33 @@ const static uint64_t HEADER_SIZE = 2 + 8 * 2;
 
 SegmentReader::SegmentReader(const std::string& folder,
     const std::string& filename):folder_(folder),
-  filename_(filename),current_offset_(0),
-  fd_(NULL),idx_cache_(),
+  filename_(filename),sid_counter_(0),
+  sessions_(),
+  idx_cache_(),
   last_entry_id_(0),
   codec_() {}
 
 SegmentReader::~SegmentReader() {}
 
-bool SegmentReader::Init() {
+bool SegmentReader::AddSession(uint32_t* sid) {
+  if (sid == NULL) {
+    LOG(WARNING, "add session sid is null");
+    return false;
+  }
+  sid_counter_++;
+  *sid = sid_counter_;
   std::string path = folder_ + "/" + filename_;
-  fd_ = fopen(path.c_str(), "rb");
+  FILE* fd_ = fopen(path.c_str(), "rb");
   if (fd_ == NULL) {
     LOG(WARNING, "fail to create segment %s", path.c_str());
     return false;
   }
-  //TODO load index
+  ReadSession* session = new ReadSession();
+  session->sid_ = sid;
+  session->last_read_offset_ = 0;
+  session->fd_ = fd_;
+  sessions_->insert(std::make_pair(sid, session));
+  LOG(INFO, "create session %ld of file %s", sid, filename_.c_str());
   return true;
 }
 
