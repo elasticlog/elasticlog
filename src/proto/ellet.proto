@@ -43,10 +43,25 @@ message SyncSegmentResponse {
   optional Status status = 1;
 }
 
+message ReadLogRequest {
+  optional uint64 log_id = 1;
+  optional uint32 partion_id = 2;
+  optional uint64 entry_id = 3;
+  optional uint64 client_id = 4;
+  optional uint32 log_count = 5;
+}
+
+message ReadLogResponse {
+  repeated LogEntry entry = 1;
+  optional Status status = 2;
+}
+
 service ElLet {
   // handle sdk requests
   rpc AppendEntry(AppendEntryRequest) returns (AppendEntryResponse);
   rpc Sync(SyncSegmentRequest) returns (SyncSegmentResponse);
+  rpc ReadLog(ReadLogRequest) returns (ReadLogResponse);
+
   // handle master requests
   rpc DeploySegment(DeploySegmentRequest) returns (DeploySegmentResponse);
 }

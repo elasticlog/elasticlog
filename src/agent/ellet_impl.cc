@@ -33,7 +33,8 @@ ElLog::ElLog():log_id(0),
   mu_(),
   segment_max_size_(0),
   index_max_size_(0),
-  partion_dir_(){}
+  partion_dir_(),
+  client_scope_(){}
 
 ElLog::~ElLog() {
   delete appender_;
@@ -107,6 +108,15 @@ Status ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
     return kOk;
   }
   return kAppendError;
+}
+
+Status ElLog::ReadLog(uint64_t client_id, uint64_t log_id, uint32_t partion_id,
+    ReadLogResponse* response) {
+  MutexLock lock(&mu_);
+  std::map<uint64_t, uint32_t>::iterator it = client_scope_.find(client_id);
+  if (it == client_scope_.end()) {
+  
+  }
 }
 
 bool ElLog::Rolling() {
@@ -187,6 +197,26 @@ void ElLetImpl::AppendEntry(RpcController* controller,
   response->set_status(ok);
   done->Run();
   el_log->DecRef();
+}
+
+void ElLetImpl::ReadLog(RpcController* controller,
+                const ReadLogRequest* request,
+                ReadLogResponse* response,
+                Closure* done) {
+  ElLog* el_log = NULL;
+  {
+    MutexLock lock(&mu_);
+    ElLogs::iterator it = el_logs_.find(request->log_id());
+    if (it == el_logs_.end()) {
+      LOG(WARNING, "fail to find log with #id %ld", request->log_id());
+      response->set_status(kLogNotFound);
+      done->Run();
+      return;
+    }
+    el_log = it->second;
+    el_log->AddRef();
+  }
+
 }
 
 void ElLetImpl::DeploySegment(RpcController* controller,
