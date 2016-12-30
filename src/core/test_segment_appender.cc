@@ -30,14 +30,12 @@ TEST_F(SA_Test, Init) {
   std::string data ="hello elasticlog xxxxxxxxxxxxxxxx!";
   uint64_t offset  = 64;
   EntryIndex* idx = new EntryIndex();
-  idx->start = 0;
-  idx->size = 34;
   ok = appender.Append(data.c_str(), data.size(), offset, idx);
   ASSERT_EQ(true, ok);
   reader.PutIdxCache(offset, idx);
-  ok = appender.Sync();
+  /*ok = appender.Sync();
   ASSERT_EQ(true, ok);
-  appender.Close();
+  appender.Close();*/
   uint32_t sid = 0;
   ok = reader.NewScope(&sid);
   ASSERT_EQ(true, ok);
@@ -45,7 +43,14 @@ TEST_F(SA_Test, Init) {
   ok = reader.Next(sid, &item);
   ASSERT_EQ(true, ok);
   ASSERT_EQ(item.data, data);
-  reader.Close();
+  EntryIndex* idx2 = new EntryIndex();
+  ok = appender.Append(data.c_str(), data.size(), offset+1, idx2);
+  ASSERT_EQ(true, ok);
+  reader.PutIdxCache(offset+1, idx2);
+  LogItem item1;
+  ok = reader.Next(sid, &item1);
+  ASSERT_EQ(true, ok);
+  ASSERT_EQ(item1.data, data);
 }
 
 }
