@@ -52,6 +52,7 @@ private:
   ElLogState state;
   volatile int refs_;
   std::vector<uint64_t> segment_ids;
+  SegmentAppender* appender_;
   uint64_t current_segment_id_;
   Mutex mu_;
   uint64_t segment_max_size_;

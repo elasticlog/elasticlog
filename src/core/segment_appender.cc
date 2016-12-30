@@ -60,8 +60,8 @@ bool SegmentAppender::Append(const char* data, uint64_t size, uint64_t entry_id,
     return false;
   }
   if (idx != NULL) {
-    idx.start = start;
-    idx.size = size;
+    idx->start = start;
+    idx->size = size;
   }
   data_appender_.Flush();
   consumed = ::baidu::common::timer::get_micros() - consumed;
