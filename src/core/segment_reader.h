@@ -20,7 +20,9 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <map>
 #include "segment_codec.h"
+#include "index_appender.h"
 
 namespace el {
 
@@ -30,28 +32,35 @@ struct LogItem {
   uint64_t offset;
 };
 
+struct ReadScope {
+  FILE* fd_;
+  uint64_t last_read_offset_;
+  uint32_t sid_;
+  uint64_t last_entry_id_;
+};
+
 class SegmentReader {
 
 public:
   SegmentReader(const std::string& folder,
-      const std::string& filename);
+                const std::string& filename);
   ~SegmentReader();
-  // init segment reader with filename 
-  bool Init();
-  // check the segment readable 
-  bool Readable();
+  bool NewScope(uint32_t* sid);
   // get next log data
-  bool Next(LogItem* log_item);
-  // reset fd offset
-  bool Reset(uint64_t offset);
+  bool Next(uint32_t sid, LogItem* log_item);
+
+  void PutIdxCache(uint64_t entry_id, EntryIndex* idx);
 
   void Close();
+
 private:
   std::string folder_;
   std::string filename_;
 
-  uint64_t current_offset_;
-  FILE* fd_;
+  uint64_t sid_counter_;
+
+  std::map<uint32_t, ReadScope*> scopes_;
+  std::map<uint64_t, EntryIndex*> idx_cache_;
   SegmentCodec codec_;
 };
 

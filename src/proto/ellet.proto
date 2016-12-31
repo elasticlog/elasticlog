@@ -34,11 +34,19 @@ message DeploySegmentResponse {
   optional Status status = 1;
 }
 
+message SyncSegmentRequest {
+  optional uint64 log_id = 1;
+  optional uint32 partion_id = 2;
+}
+
+message SyncSegmentResponse {
+  optional Status status = 1;
+}
 
 service ElLet {
   // handle sdk requests
   rpc AppendEntry(AppendEntryRequest) returns (AppendEntryResponse);
-
+  rpc Sync(SyncSegmentRequest) returns (SyncSegmentResponse);
   // handle master requests
   rpc DeploySegment(DeploySegmentRequest) returns (DeploySegmentResponse);
 }

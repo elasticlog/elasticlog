@@ -24,6 +24,7 @@
 
 namespace el {
 
+
 //Note: not thread safe
 class BaseAppender {
 

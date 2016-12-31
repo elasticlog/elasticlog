@@ -6,6 +6,7 @@
  */
 
 #include "segment_appender.h"
+#include "segment_reader.h"
 
 #include "gtest/gtest.h"
 #include "logging.h"
@@ -22,18 +23,34 @@ public:
 
 TEST_F(SA_Test, Init) {
   SegmentAppender appender("/tmp", "0.segm", "0.idx", 1024 * 1024, 1024 * 1024);
-  bool ok = appender.Init();
+  SegmentReader reader("/tmp", "0.segm");
+  bool ok =false;
+  ok = appender.Init();
   ASSERT_EQ(true, ok);
   std::string data ="hello elasticlog xxxxxxxxxxxxxxxx!";
   uint64_t offset  = 64;
-  ok = appender.Append(data.c_str(), data.size(), offset);
+  EntryIndex* idx = new EntryIndex();
+  ok = appender.Append(data.c_str(), data.size(), offset, idx);
   ASSERT_EQ(true, ok);
-  offset = 65;
-  ok = appender.Append(data.c_str(), data.size(), offset);
+  reader.PutIdxCache(offset, idx);
+  /*ok = appender.Sync();
   ASSERT_EQ(true, ok);
-  ok = appender.Sync();
+  appender.Close();*/
+  uint32_t sid = 0;
+  ok = reader.NewScope(&sid);
   ASSERT_EQ(true, ok);
-  appender.Close();
+  LogItem item;
+  ok = reader.Next(sid, &item);
+  ASSERT_EQ(true, ok);
+  ASSERT_EQ(item.data, data);
+  EntryIndex* idx2 = new EntryIndex();
+  ok = appender.Append(data.c_str(), data.size(), offset+1, idx2);
+  ASSERT_EQ(true, ok);
+  reader.PutIdxCache(offset+1, idx2);
+  LogItem item1;
+  ok = reader.Next(sid, &item1);
+  ASSERT_EQ(true, ok);
+  ASSERT_EQ(item1.data, data);
 }
 
 }
