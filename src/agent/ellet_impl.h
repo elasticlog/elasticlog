@@ -43,12 +43,15 @@ public:
   Status ReadLog(uint64_t client_id,
       uint64_t log_id,
       uint32_t partion_id,
+      uint64_t offset,
       ReadLogResponse* response);
 
 private:
   // create a new segment for next segment ids;
   bool Rolling();
   void Close();
+
+  bool CreateReader(uint64_t segment_id, SegmentReader* reader);
 
 private:
 
@@ -67,7 +70,11 @@ private:
   uint64_t index_max_size_;
   std::string partion_dir_;
   std::map<uint64_t, uint32_t> client_scope_;
+  // segment id 
   std::map<uint64_t, SegmentReader*> readers_;
+  //  
+  std::map<uint64_t, uint64_t> segment_range_;
+  uint64_t start_offset_;
   friend class ElLetImpl;
 };
 

@@ -34,7 +34,10 @@ ElLog::ElLog():log_id(0),
   segment_max_size_(0),
   index_max_size_(0),
   partion_dir_(),
-  client_scope_(){}
+  client_scope_(),
+  readers_(),
+  segment_range_(),
+  start_offset_(){}
 
 ElLog::~ElLog() {
   delete appender_;
@@ -80,6 +83,13 @@ void ElLog::DecRef() {
   }
 }
 
+bool ElLog::CreateReader(uint64_t segment_id, SegmentReader* reader) {
+  mu_.AssertHeld();
+  std::stringstream idx_ss;
+  idx_ss << current_segment_id_ << ".idx";
+
+}
+
 void ElLog::Close() {
   MutexLock lock(&mu_);
   if (appender_ != NULL) {
@@ -111,11 +121,34 @@ Status ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
 }
 
 Status ElLog::ReadLog(uint64_t client_id, uint64_t log_id, uint32_t partion_id,
+    uint64_t offset,
     ReadLogResponse* response) {
   MutexLock lock(&mu_);
+  std::map<uint64_t, uint64_t>::iterator rit = segment_range_.begin();
+  uint64_t last_segment_id = 0;
+  for (; rit != segment_range_.end(); ++rit) {
+    if (offset >= rit->first) {
+      last_segment_id = rit->second;
+    }else {
+      break;
+    }
+  }
+
+  if (last_segment_id <= 0) {
+    LOG(WARNING, "Can not find segment id with #offset %lld", offset);
+    response->set_status(kSegmentNotFound);
+    return;
+  }
+
+  std::map<uint64_t, SegmentReader*>::iterator sit = readers_.find(last_segment_id);
+  if (sit == readers_.end()) {
+    
+  }
+
   std::map<uint64_t, uint32_t>::iterator it = client_scope_.find(client_id);
   if (it == client_scope_.end()) {
-  
+    uint32_t sid = 0;
+
   }
 }
 
@@ -216,6 +249,7 @@ void ElLetImpl::ReadLog(RpcController* controller,
     el_log = it->second;
     el_log->AddRef();
   }
+  el_log->ReadLog()
 
 }
 
@@ -230,6 +264,7 @@ void ElLetImpl::DeploySegment(RpcController* controller,
   el_log->primary_endpoint = request->primary_endpoint();
   el_log->segment_max_size_ = request->segment_max_size();
   el_log->index_max_size_ = request->idx_max_size();
+  el_log->start_offset_ = request->start_offset();
   std::stringstream ids;
   for (int i = 0; i < request->replica_endpoints_size(); ++i) {
     el_log->replica_endpoints.insert(request->replica_endpoints(i));

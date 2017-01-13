@@ -8,6 +8,7 @@ enum Status {
   kLogExists = 40;
   kLogNotFound = 41;
   kNoSegmentAvailable = 42;
+  kSegmentNotFound = 43;
 }
 
 enum ElLogState {

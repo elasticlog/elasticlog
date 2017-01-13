@@ -28,6 +28,7 @@ message DeploySegmentRequest {
   repeated uint64 segment_ids = 7;
   optional uint64 segment_max_size = 8;
   optional uint64 idx_max_size = 9;
+  optional uint64 start_offset = 10;
 }
 
 message DeploySegmentResponse {
