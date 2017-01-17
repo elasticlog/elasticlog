@@ -83,12 +83,6 @@ void ElLog::DecRef() {
   }
 }
 
-bool ElLog::CreateReader(uint64_t segment_id, SegmentReader* reader) {
-  mu_.AssertHeld();
-  std::stringstream idx_ss;
-  idx_ss << current_segment_id_ << ".idx";
-
-}
 
 void ElLog::Close() {
   MutexLock lock(&mu_);
@@ -133,23 +127,31 @@ Status ElLog::ReadLog(uint64_t client_id, uint64_t log_id, uint32_t partion_id,
       break;
     }
   }
-
   if (last_segment_id <= 0) {
     LOG(WARNING, "Can not find segment id with #offset %lld", offset);
     response->set_status(kSegmentNotFound);
     return;
   }
-
   std::map<uint64_t, SegmentReader*>::iterator sit = readers_.find(last_segment_id);
   if (sit == readers_.end()) {
-    
+    LOG(WARNING, "Can not find segment reader with #id %lld", last_segment_id);
+    response->set_status(kSegmentNotFound);
+    return;
   }
-
+  SegmentReader* reaader = sit->second;
   std::map<uint64_t, uint32_t>::iterator it = client_scope_.find(client_id);
+  uint32_t sid = 0;
   if (it == client_scope_.end()) {
-    uint32_t sid = 0;
-
+    bool ok = reader->NewScope(&sid);
+    if (!ok) {
+      LOG(WARNING, "fail to create a read scope for client #id %lld", client_id);
+      response->set_status(kRpcErr);
+      return;
+    }
+  } else {
+    sid = it->second;
   }
+
 }
 
 bool ElLog::Rolling() {
@@ -193,6 +195,8 @@ bool ElLog::Rolling() {
       appender_ = NULL;
       return false;
     }
+    SegmentReader* reader = new SegmentReader(partion_dir_, index_name);
+    readers_.insert(std::make_pair(current_segment_id_, reader));
     LOG(INFO, "rolling next segment #id %ld #succ %d for log #id %ld #name %s", 
       current_segment_id_, ret,
       log_id, log_name.c_str());

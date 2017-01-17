@@ -51,8 +51,6 @@ private:
   bool Rolling();
   void Close();
 
-  bool CreateReader(uint64_t segment_id, SegmentReader* reader);
-
 private:
 
   uint64_t log_id;
