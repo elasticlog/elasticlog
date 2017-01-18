@@ -148,9 +148,8 @@ Status ElLog::ReadLog(uint64_t client_id, uint64_t log_id, uint32_t partion_id,
       response->set_status(kRpcErr);
       return;
     }
-  } else {
-    sid = it->second;
   }
+  sid = it->second;
 
 }
 

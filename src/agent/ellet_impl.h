@@ -70,7 +70,6 @@ private:
   std::map<uint64_t, uint32_t> client_scope_;
   // segment id 
   std::map<uint64_t, SegmentReader*> readers_;
-  //  
   std::map<uint64_t, uint64_t> segment_range_;
   uint64_t start_offset_;
   friend class ElLetImpl;

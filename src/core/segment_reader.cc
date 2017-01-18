@@ -60,6 +60,62 @@ bool SegmentReader::NewScope(uint32_t* sid) {
   return true;
 }
 
+bool SegmentReader::Seek(uint32_t sid, uint64_t offset) {
+  std::map<uint32_t, ReadScope*>::iterator sit = scopes_.find(sid);
+  if (sit == scopes_.end()) {
+    LOG(WARNING, "fail find read scope with #id $ld", sid);
+    return false;
+  }
+  ReadScope* scope = sit->second;
+  std::map<uint64_t, EntryIndex*>::iterator it = idx_cache_.find(offset); 
+  ++it;
+  if (it != idx_cache_.end()) {
+    uint64_t entry_id = it->first;
+    log_item->size = it->second->size;
+    log_item->data.resize(log_item->size);
+    if (scope->last_read_offset_ != it->second->start) {
+      //TODO seek and read
+      int ok = fseek(scope->fd_, it->second->start, SEEK_SET);
+      if (ok != 0) {
+        LOG(WARNING, "fail to seek to %lld with file %s for %s",
+            it->second->start,
+            filename_.c_str(),
+            strerror(errno));
+        return false;
+      }
+      LOG(DEBUG, "miss file iterator and seek to %lld with file %s",
+        it->second->start,
+        filename_.c_str());
+      scope->last_read_offset_ = it->second->start;
+    }
+  }
+}
+
+
+bool SegmentReader::NextWithOffset(uint32_t sid, uint64_t offset,
+    LogItem* log_item) {
+  if (log_item == NULL) {
+    return false;
+  }
+  std::map<uint32_t, ReadScope*>::iterator sit = scopes_.find(sid);
+  if (sit == scopes_.end()) {
+    LOG(WARNING, "fail find read scope with #id $ld", sid);
+    return false;
+  }
+  ReadScope* scope = sit->second;
+  std::map<uint64_t, EntryIndex*>::iterator it = idx_cache_.rbegin(); 
+  if (scope->last_entry_id_ > 0) {
+    it = idx_cache_.find(offset);
+    ++it;
+  }
+  // check if need seeking to offset 
+  if (it != idx_cache_.rend()) {
+    if (scope->last_read_offset_ != it->second->start) {
+      int ok = fseek(scope->fd_, it->second->start, SEEK_SET);
+    }
+  }
+}
+
 bool SegmentReader::Next(uint32_t sid, LogItem* log_item) {
   if (log_item == NULL) {
     return false;
@@ -120,6 +176,38 @@ void SegmentReader::PutIdxCache(uint64_t entry_id, EntryIndex* idx) {
 void SegmentReader::Close() {
 
 }
+
+bool SegmentReader::LocateEntry(uint64_t entry_id) {
+  // go back to find the entry before input entry id
+  std::<uint64_t, EntryIndex*>::iterator it = idx_cache_.rfind(entry_id);
+  if (it == idx_cache_.rend()) {
+    LOG(WARNING, "no entry index with entry id %lld in %s", entry_id, filename_.c_str());
+    return false;
+  }
+  EntryIndex* entry_idx = it->second;
+  ++it;
+  if (it == idx_cache_.rend()) {
+    LOG(WARNING, "no pre entry id before entry id %lld", entry_id);
+    return true;
+  }
+  if (last_entry_id_ == it->start) {
+    //continue scan
+    return true;
+  }
+  int ok = fseek(fd_, entry_idx->start, SEEK_SET);
+  if (ok != 0) {
+    LOG(WARNING, "fail to seek to %lld with file %s for %s",
+        entry_idx->start,
+        filename_.c_str(),
+        strerror(errno));
+    return false;
+  }
+  LOG(DEBUG, "miss file iterator and seek to %lld with file %s",
+    entry_idx->start,
+    filename_.c_str());
+  return true;
+}
+
 
 }
 

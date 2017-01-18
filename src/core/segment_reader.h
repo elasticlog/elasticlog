@@ -23,43 +23,43 @@
 #include <map>
 #include "segment_codec.h"
 #include "index_appender.h"
+#include "ellet.pb.h"
 
 namespace el {
-
-struct LogItem {
-  std::string data;
-  uint64_t size;
-  uint64_t offset;
-};
-
-struct ReadScope {
-  FILE* fd_;
-  uint64_t last_read_offset_;
-  uint32_t sid_;
-  uint64_t last_entry_id_;
-};
 
 class SegmentReader {
 
 public:
+
   SegmentReader(const std::string& folder,
                 const std::string& filename);
+
   ~SegmentReader();
-  bool NewScope(uint32_t* sid);
-  // get next log data
-  bool Next(uint32_t sid, LogItem* log_item);
 
-  void PutIdxCache(uint64_t entry_id, EntryIndex* idx);
+  //scan logs from start entry id 
+  bool Scan(uint64_t start_offset, std::vector<LogEntry*> logs);
 
+  //put entry id index
+  void PutIdx(uint64_t entry_id, EntryIndex* idx);
+
+  //load all idx to memory
+  void LoadIdx();
+
+  //close all fds
   void Close();
 
 private:
+
+  bool LocateEntry(uint64_t entry_id);
+private:
   std::string folder_;
   std::string filename_;
-
-  uint64_t sid_counter_;
-
-  std::map<uint32_t, ReadScope*> scopes_;
+  //the file offset
+  uint64_t last_read_offset_;
+  //the last log entry id
+  uint64_t last_entry_id_;
+  //segment file descriptor
+  FILE* fd_;
   std::map<uint64_t, EntryIndex*> idx_cache_;
   SegmentCodec codec_;
 };
