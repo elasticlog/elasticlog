@@ -33,7 +33,11 @@ ElLog::ElLog():log_id(0),
   mu_(),
   segment_max_size_(0),
   index_max_size_(0),
-  partion_dir_(){}
+  partion_dir_(),
+  client_scope_(),
+  readers_(),
+  segment_range_(),
+  start_offset_(){}
 
 ElLog::~ElLog() {
   delete appender_;
@@ -79,6 +83,7 @@ void ElLog::DecRef() {
   }
 }
 
+
 void ElLog::Close() {
   MutexLock lock(&mu_);
   if (appender_ != NULL) {
@@ -107,6 +112,45 @@ Status ElLog::Append(const char* data, uint64_t size, uint64_t offset) {
     return kOk;
   }
   return kAppendError;
+}
+
+Status ElLog::ReadLog(uint64_t client_id, uint64_t log_id, uint32_t partion_id,
+    uint64_t offset,
+    ReadLogResponse* response) {
+  MutexLock lock(&mu_);
+  std::map<uint64_t, uint64_t>::iterator rit = segment_range_.begin();
+  uint64_t last_segment_id = 0;
+  for (; rit != segment_range_.end(); ++rit) {
+    if (offset >= rit->first) {
+      last_segment_id = rit->second;
+    }else {
+      break;
+    }
+  }
+  if (last_segment_id <= 0) {
+    LOG(WARNING, "Can not find segment id with #offset %lld", offset);
+    response->set_status(kSegmentNotFound);
+    return;
+  }
+  std::map<uint64_t, SegmentReader*>::iterator sit = readers_.find(last_segment_id);
+  if (sit == readers_.end()) {
+    LOG(WARNING, "Can not find segment reader with #id %lld", last_segment_id);
+    response->set_status(kSegmentNotFound);
+    return;
+  }
+  SegmentReader* reaader = sit->second;
+  std::map<uint64_t, uint32_t>::iterator it = client_scope_.find(client_id);
+  uint32_t sid = 0;
+  if (it == client_scope_.end()) {
+    bool ok = reader->NewScope(&sid);
+    if (!ok) {
+      LOG(WARNING, "fail to create a read scope for client #id %lld", client_id);
+      response->set_status(kRpcErr);
+      return;
+    }
+  }
+  sid = it->second;
+
 }
 
 bool ElLog::Rolling() {
@@ -150,6 +194,8 @@ bool ElLog::Rolling() {
       appender_ = NULL;
       return false;
     }
+    SegmentReader* reader = new SegmentReader(partion_dir_, index_name);
+    readers_.insert(std::make_pair(current_segment_id_, reader));
     LOG(INFO, "rolling next segment #id %ld #succ %d for log #id %ld #name %s", 
       current_segment_id_, ret,
       log_id, log_name.c_str());
@@ -189,6 +235,27 @@ void ElLetImpl::AppendEntry(RpcController* controller,
   el_log->DecRef();
 }
 
+void ElLetImpl::ReadLog(RpcController* controller,
+                const ReadLogRequest* request,
+                ReadLogResponse* response,
+                Closure* done) {
+  ElLog* el_log = NULL;
+  {
+    MutexLock lock(&mu_);
+    ElLogs::iterator it = el_logs_.find(request->log_id());
+    if (it == el_logs_.end()) {
+      LOG(WARNING, "fail to find log with #id %ld", request->log_id());
+      response->set_status(kLogNotFound);
+      done->Run();
+      return;
+    }
+    el_log = it->second;
+    el_log->AddRef();
+  }
+  el_log->ReadLog()
+
+}
+
 void ElLetImpl::DeploySegment(RpcController* controller,
                  const DeploySegmentRequest* request,
                  DeploySegmentResponse* response,
@@ -200,6 +267,7 @@ void ElLetImpl::DeploySegment(RpcController* controller,
   el_log->primary_endpoint = request->primary_endpoint();
   el_log->segment_max_size_ = request->segment_max_size();
   el_log->index_max_size_ = request->idx_max_size();
+  el_log->start_offset_ = request->start_offset();
   std::stringstream ids;
   for (int i = 0; i < request->replica_endpoints_size(); ++i) {
     el_log->replica_endpoints.insert(request->replica_endpoints(i));

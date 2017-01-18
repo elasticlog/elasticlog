@@ -52,6 +52,7 @@ TEST_F(ElLet_Test, DeploySegment) {
   request.add_segment_ids(10);
   request.add_segment_ids(11);
   request.set_segment_max_size(1024 * 1024 * 5);
+  request.set_idx_max_size(1024 * 1024 * 5);
   DeploySegmentResponse response;
   ok = client->SendRequest(ellet, &ElLet_Stub::DeploySegment,
       &request,&response, 5, 1);
